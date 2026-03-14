@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   home.packages = with pkgs; [
     # --- CLI tools (DEV-04) ---
@@ -28,7 +28,7 @@
 
     # --- C/C++ (DEV-09) ---
     gcc
-    clang
+    (lib.setPrio 20 clang)  # lower priority than gcc to avoid bin/c++ conflict
     cmake
     gnumake
 
