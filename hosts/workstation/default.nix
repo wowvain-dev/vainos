@@ -4,6 +4,7 @@
     ./hardware-configuration.nix
     ./gpu.nix
     ./desktop.nix
+    ./bluetooth.nix
   ];
 
   networking.hostName = "workstation";
