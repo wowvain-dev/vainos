@@ -13,9 +13,14 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    vainim = {
+      url = "github:wowvain-dev/vainim";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, vainim, ... }@inputs:
   let
     mkHost = import ./lib/mkHost.nix { inherit inputs; };
   in {

@@ -15,6 +15,6 @@
       background_opacity = "0.95";
     };
 
-    shellIntegration.enableBashIntegration = true;
+    shellIntegration.enableZshIntegration = true;
   };
 }
