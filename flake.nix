@@ -25,6 +25,7 @@
       };
       workstation = mkHost "workstation" {
         system = "x86_64-linux";
+        home-modules = [ ./home/desktop ];
       };
     };
   };
