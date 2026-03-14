@@ -1,0 +1,5 @@
+{
+  # Copy to workstation.nix.
+  # Workstation uses DHCP — no network config needed.
+  # Add machine-specific overrides here if needed.
+}

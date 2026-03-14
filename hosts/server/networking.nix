@@ -1,4 +1,4 @@
-{ ... }:
+{ machineConfig, ... }:
 {
   # SSH hardening -- key-only auth
   services.openssh = {
@@ -21,24 +21,33 @@
     };
   };
 
-  # Networking -- static IP configuration (matches Hetzner server setup)
+  # Networking -- static IP configuration
   networking = {
     hostName = "server";
     useDHCP = false;
     usePredictableInterfaceNames = false;
 
-    interfaces.eth0 = {
-      ipv4.addresses = [{ address = "46.224.225.195"; prefixLength = 32; }];
-      ipv4.routes = [{ address = "172.31.1.1"; prefixLength = 32; }];
-      ipv6.addresses = [
-        { address = "2a01:4f8:1c19:452b::1"; prefixLength = 64; }
-        { address = "2a01:4f8:1c19:452b::2"; prefixLength = 64; }
-      ];
+    interfaces.${machineConfig.interface} = {
+      ipv4.addresses = [{
+        address = machineConfig.ipv4.address;
+        prefixLength = machineConfig.ipv4.prefixLength;
+      }];
+      ipv4.routes = [{
+        address = machineConfig.ipv4.gatewayRoute;
+        prefixLength = 32;
+      }];
+      ipv6.addresses = machineConfig.ipv6.addresses;
     };
 
-    defaultGateway = { address = "172.31.1.1"; interface = "eth0"; };
-    defaultGateway6 = { address = "fe80::1"; interface = "eth0"; };
-    nameservers = [ "185.12.64.1" "185.12.64.2" ];
+    defaultGateway = {
+      address = machineConfig.ipv4.gateway;
+      interface = machineConfig.interface;
+    };
+    defaultGateway6 = {
+      address = machineConfig.ipv6.gateway;
+      interface = machineConfig.interface;
+    };
+    nameservers = machineConfig.nameservers;
 
     # Firewall -- deny by default, allow only SSH + HTTP + HTTPS
     firewall = {

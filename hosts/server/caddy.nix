@@ -1,9 +1,9 @@
-{ ... }:
+{ machineConfig, ... }:
 {
   services.caddy = {
     enable = true;
 
-    virtualHosts."http://46.224.225.195".extraConfig = ''
+    virtualHosts."http://${machineConfig.ipv4.address}".extraConfig = ''
       handle /static/* {
         root * /srv/www
         encode gzip

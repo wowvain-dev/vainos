@@ -1,0 +1,21 @@
+{
+  # Copy to server.nix and fill in your values.
+  # This file is gitignored — your machine-specific config stays local.
+
+  ipv4 = {
+    address = "YOUR_IPV4_ADDRESS";
+    prefixLength = 32;
+    gateway = "YOUR_GATEWAY_IP";
+    gatewayRoute = "YOUR_GATEWAY_IP";  # Usually same as gateway for Hetzner-style setups
+  };
+
+  ipv6 = {
+    addresses = [
+      { address = "YOUR_IPV6_1"; prefixLength = 64; }
+    ];
+    gateway = "fe80::1";
+  };
+
+  nameservers = [ "DNS_SERVER_1" "DNS_SERVER_2" ];
+  interface = "eth0";
+}

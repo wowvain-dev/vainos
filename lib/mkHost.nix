@@ -1,8 +1,8 @@
 { inputs, ... }:
-name: { system, modules ? [], home-modules ? [] }:
+name: { system, modules ? [], home-modules ? [], machineConfig ? {} }:
 inputs.nixpkgs.lib.nixosSystem {
   inherit system;
-  specialArgs = { inherit inputs; hostname = name; };
+  specialArgs = { inherit inputs machineConfig; hostname = name; };
   modules = [
     ../hosts/common
     ../hosts/${name}

@@ -1,1 +1,5 @@
 .planning/
+
+# Machine-specific local config (contains IPs, hardware details)
+local/*.nix
+local/deploy.env
