@@ -3,6 +3,7 @@
   imports = [
     ./hardware-configuration.nix
     ./gpu.nix
+    ./desktop.nix
   ];
 
   networking.hostName = "workstation";
