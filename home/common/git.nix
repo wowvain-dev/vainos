@@ -5,7 +5,7 @@
     settings = {
       user = {
         name = "wowvain-dev";      # GitHub username
-        email = "TODO@example.com"; # TODO: replace with actual email
+        email = "wowvain.dev@gmail.com";
       };
       alias = {
         co = "checkout";
