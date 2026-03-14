@@ -3,12 +3,13 @@
   users.users.wowvain = {
     isNormalUser = true;
     extraGroups = lib.mkDefault [ "wheel" ];
-    # SSH authorized keys can be added per-host or via sops-nix
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILcxrMxPWHixXIWknswA7O/4ScrxNO2H3c9E5TmofKi9 wowva@vain_main"
+    ];
   };
 
   # Root SSH access for remote deployment (nixos-rebuild --target-host)
-  # TODO: Replace PLACEHOLDER_SSH_KEY with your actual ed25519 public key
   users.users.root.openssh.authorizedKeys.keys = [
-    "PLACEHOLDER_SSH_KEY"
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILcxrMxPWHixXIWknswA7O/4ScrxNO2H3c9E5TmofKi9 wowva@vain_main"
   ];
 }
