@@ -1,7 +1,11 @@
 { ... }:
 {
-  # Home Manager base configuration
-  # Extended in Phase 3 with shell, git, dev tools
+  imports = [
+    ./shell.nix
+    ./git.nix
+    ./neovim.nix
+  ];
+
   home.stateVersion = "25.11";
   programs.home-manager.enable = true;
 }
