@@ -3,6 +3,9 @@
   imports = [
     ./hardware-configuration.nix
     ./networking.nix
+    ./podman.nix
+    ./caddy.nix
+    ./containers.nix
   ];
 
   # Boot loader -- UEFI with systemd-boot (matches original install)
