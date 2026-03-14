@@ -30,12 +30,17 @@ in
           "$mod, Q, killactive"
           "$mod, F, fullscreen"
           "$mod, V, togglefloating"
+          "$mod, L, exec, hyprlock"
+          ''$mod, C, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy''
+          '', Print, exec, grim ~/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png''
+          ''$mod, Print, exec, grim -g "$(slurp)" ~/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png''
         ]
         ++ (builtins.map (n: "$mod, ${n}, workspace, ${n}") workspaces)
         ++ (builtins.map (n: "$mod SHIFT, ${n}, movetoworkspace, ${n}") workspaces);
 
       exec-once = [
         "hyprpolkitagent"
+        "mkdir -p ~/Pictures/Screenshots"
       ];
     };
   };
