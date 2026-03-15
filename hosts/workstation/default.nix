@@ -1,25 +1,11 @@
+# Workstation host configuration -- pure data.
+# NixOS config lives in sibling .nix files (auto-imported by mkHost).
+# hardware-configuration.nix is auto-imported by mkHost.
 { ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-    ./gpu.nix
-    ./desktop.nix
-    ./bluetooth.nix
-  ];
+  # Architecture -- read by flake.nix scanner
+  systemSettings.system = "x86_64-linux";
 
-  networking.hostName = "workstation";
-
-  # Bootloader -- systemd-boot with shared ESP from Windows
-  # TODO: If ESP is < 512MB, reduce configurationLimit or set up XBOOTLDR
-  boot.loader = {
-    systemd-boot.enable = true;
-    systemd-boot.configurationLimit = 10;  # Limit stored generations to conserve ESP space
-    efi.canTouchEfiVariables = true;
-  };
-
-  # Fix clock drift when dual-booting with Windows
-  # Windows uses localtime for the hardware clock; NixOS defaults to UTC
-  time.hardwareClockInLocalTime = true;
-
-  system.stateVersion = "25.11";
+  # NixOS state version -- applied as system.stateVersion by mkHost
+  systemSettings.stateVersion = "25.11";
 }

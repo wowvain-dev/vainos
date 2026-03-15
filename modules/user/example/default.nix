@@ -1,10 +1,11 @@
-# Example user module — demonstrates the canonical vainos module pattern for Home Manager.
+# Example user module -- demonstrates the canonical vainos user module pattern.
+# User modules are NixOS modules that set Home Manager config via home-manager.users.wowvain.
 # Copy this directory to create a new user module.
 # Delete this module once real modules exist in Phase 5.
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.userSettings.example;  # Read from userSettings namespace
+  cfg = config.userSettings.example;
 in
 {
   options.userSettings.example = {
@@ -18,8 +19,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # This block only applies when userSettings.example.enable = true
-    # Real modules put Home Manager config here: programs, services, files, etc.
-    home.file.".vainos-example".text = cfg.editorTheme;
+    # User modules set Home Manager config at the NixOS level
+    home-manager.users.wowvain.home.file.".vainos-example".text = cfg.editorTheme;
   };
 }

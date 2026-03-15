@@ -1,17 +1,11 @@
+# Server host configuration -- pure data.
+# NixOS config lives in sibling .nix files (auto-imported by mkHost).
+# hardware-configuration.nix is auto-imported by mkHost.
 { ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-    ./networking.nix
-    ./podman.nix
-    ./caddy.nix
-    ./containers.nix
-  ];
+  # Architecture -- read by flake.nix scanner
+  systemSettings.system = "x86_64-linux";
 
-  # Boot loader -- UEFI with systemd-boot (matches original install)
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # Match the stateVersion from the original NixOS installation
-  system.stateVersion = "24.11";
+  # NixOS state version -- applied as system.stateVersion by mkHost
+  systemSettings.stateVersion = "24.11";
 }
