@@ -8,4 +8,10 @@
 
   # NixOS state version -- applied as system.stateVersion by mkHost
   systemSettings.stateVersion = "24.11";
+
+  # --- Enable server modules ---
+  systemSettings.server.networking.enable = true;
+  systemSettings.server.caddy.enable = true;
+  systemSettings.server.containers.enable = true;
+  systemSettings.server.podman.enable = true;
 }

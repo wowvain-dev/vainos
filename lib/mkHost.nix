@@ -2,8 +2,8 @@
 # machineConfig is eliminated -- systemSettings/userSettings is THE single API.
 #
 # Auto-import sources:
-#   1. modules/system/* -- system modules (via autoImport)
-#   2. modules/user/*   -- user modules (via autoImport)
+#   1. modules/system/* -- system modules (via autoImport, toggled by systemSettings.*.enable)
+#   2. modules/user/*   -- user modules (via autoImport, toggled by userSettings.*.enable)
 #   3. hosts/{name}/*.nix -- host-specific .nix files (except default.nix + hardware-configuration.nix)
 #   4. hosts/{name}/default.nix -- host data file (systemSettings/userSettings assignments only)
 #   5. hardware-configuration.nix -- auto-detected if present in host directory
@@ -12,7 +12,7 @@
 let
   autoImport = import ./autoImport.nix;
 in
-name: { system, modules ? [], home-modules ? [], localConfigModule ? null }:
+name: { system, modules ? [], localConfigModule ? null }:
 let
   systemModules = autoImport ../modules/system;
   userModules = autoImport ../modules/user;
@@ -40,7 +40,6 @@ inputs.nixpkgs.lib.nixosSystem {
   specialArgs = { inherit inputs; hostname = name; };
   modules = [
     ./options.nix
-    ../hosts/common
     ../hosts/${name}
   ] ++ hostDirModules ++ hwConfig ++ localMod ++ [
     # mkHost-managed NixOS settings: hostName is always the directory name,
@@ -56,7 +55,8 @@ inputs.nixpkgs.lib.nixosSystem {
       home-manager.useUserPackages = true;
       home-manager.extraSpecialArgs = { inherit inputs; hostname = name; };
       home-manager.users.wowvain = {
-        imports = [ ../home/common ] ++ home-modules;
+        home.stateVersion = "25.11";
+        programs.home-manager.enable = true;
       };
     }
   ] ++ systemModules ++ userModules ++ modules;

@@ -8,4 +8,20 @@
 
   # NixOS state version -- applied as system.stateVersion by mkHost
   systemSettings.stateVersion = "25.11";
+
+  # --- Enable desktop system modules ---
+  systemSettings.desktop.hyprland.enable = true;
+  systemSettings.desktop.audio.enable = true;
+  systemSettings.desktop.gpu.enable = true;
+  systemSettings.desktop.bluetooth.enable = true;
+
+  # --- Enable desktop user modules ---
+  userSettings.desktop.hyprland.enable = true;
+  userSettings.desktop.waybar.enable = true;
+  userSettings.desktop.kitty.enable = true;
+  userSettings.desktop.fuzzel.enable = true;
+  userSettings.desktop.mako.enable = true;
+  userSettings.desktop.hyprlock.enable = true;
+  userSettings.desktop.clipboard.enable = true;
+  userSettings.desktop.screenshots.enable = true;
 }

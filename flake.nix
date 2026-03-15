@@ -38,11 +38,9 @@
     # ---- Dynamic host scanner ----
     # Discovers hosts from hosts/ directory structure.
     # Convention: hosts/{name}/default.nix with systemSettings.system = host entry.
-    # Excludes "common" (shared base config, not a host).
     hostEntries = builtins.readDir ./hosts;
     hostNames = builtins.filter
       (name: hostEntries.${name} == "directory"
-             && name != "common"
              && builtins.pathExists (./hosts + "/${name}/default.nix"))
       (builtins.attrNames hostEntries);
 
@@ -59,13 +57,6 @@
         system = raw.systemSettings.system;
       };
 
-    # Transitional: home-modules mapping.
-    # Phase 5 migrates home/desktop/* into modules/user/desktop/ (auto-imported),
-    # eliminating this lookup entirely.
-    hostHomeModules = {
-      workstation = [ ./home/desktop ];
-    };
-
     mkHostConfig = name:
       let
         meta = hostMeta name;
@@ -74,7 +65,6 @@
         value = mkHost name {
           system = meta.system;
           localConfigModule = localConfig name;
-          home-modules = hostHomeModules.${name} or [];
         };
       };
   in {
