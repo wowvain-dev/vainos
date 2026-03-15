@@ -1,5 +1,9 @@
+# Machine-specific config for workstation.
+# Copy to workstation.nix.
+# This file is gitignored -- your values stay local.
+# Imported as a NixOS module by mkHost.
+# Workstation uses DHCP -- no network config needed.
+{ ... }:
 {
-  # Copy to workstation.nix.
-  # Workstation uses DHCP — no network config needed.
-  # Add machine-specific overrides here if needed.
+  # Add systemSettings overrides here if needed.
 }

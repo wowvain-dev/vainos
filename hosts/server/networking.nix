@@ -1,4 +1,7 @@
-{ machineConfig, ... }:
+{ config, ... }:
+let
+  net = config.systemSettings.networking;
+in
 {
   # SSH hardening -- key-only auth
   services.openssh = {
@@ -23,31 +26,30 @@
 
   # Networking -- static IP configuration
   networking = {
-    hostName = "server";
     useDHCP = false;
     usePredictableInterfaceNames = false;
 
-    interfaces.${machineConfig.interface} = {
+    interfaces.${net.interface} = {
       ipv4.addresses = [{
-        address = machineConfig.ipv4.address;
-        prefixLength = machineConfig.ipv4.prefixLength;
+        address = net.ipv4.address;
+        prefixLength = net.ipv4.prefixLength;
       }];
       ipv4.routes = [{
-        address = machineConfig.ipv4.gatewayRoute;
+        address = net.ipv4.gatewayRoute;
         prefixLength = 32;
       }];
-      ipv6.addresses = machineConfig.ipv6.addresses;
+      ipv6.addresses = net.ipv6.addresses;
     };
 
     defaultGateway = {
-      address = machineConfig.ipv4.gateway;
-      interface = machineConfig.interface;
+      address = net.ipv4.gateway;
+      interface = net.interface;
     };
     defaultGateway6 = {
-      address = machineConfig.ipv6.gateway;
-      interface = machineConfig.interface;
+      address = net.ipv6.gateway;
+      interface = net.interface;
     };
-    nameservers = machineConfig.nameservers;
+    nameservers = net.nameservers;
 
     # Firewall -- deny by default, allow only SSH + HTTP + HTTPS
     firewall = {

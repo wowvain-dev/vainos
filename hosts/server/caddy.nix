@@ -1,9 +1,12 @@
-{ machineConfig, ... }:
+{ config, ... }:
+let
+  net = config.systemSettings.networking;
+in
 {
   services.caddy = {
     enable = true;
 
-    virtualHosts."http://${machineConfig.ipv4.address}".extraConfig = ''
+    virtualHosts."http://${net.ipv4.address}".extraConfig = ''
       handle /static/* {
         root * /srv/www
         encode gzip
