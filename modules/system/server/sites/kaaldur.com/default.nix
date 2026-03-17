@@ -40,7 +40,7 @@ in
         Type = "oneshot";
         User = "root";
       };
-      path = [ pkgs.git pkgs.nodejs pkgs.coreutils ];
+      path = [ pkgs.git pkgs.nodejs pkgs.coreutils pkgs.openssh ];
       script = ''
         set -euo pipefail
         SRC="/srv/sites/src/kaaldur.com"
@@ -49,7 +49,7 @@ in
         # Auto-clone if repo not present
         if [ ! -d "$SRC/.git" ]; then
           echo "deploy-kaaldur-com: cloning repository"
-          git clone https://github.com/KaaldurSoftworks/website.git "$SRC"
+          git clone git@github.com:KaaldurSoftworks/website.git "$SRC"
         fi
 
         cd "$SRC"
