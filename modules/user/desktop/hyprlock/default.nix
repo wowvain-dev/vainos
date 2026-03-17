@@ -27,7 +27,7 @@ in
             }
           ];
 
-          input-field = [
+          input-field = lib.mkForce [
             {
               monitor = "";
               size = "200, 50";
