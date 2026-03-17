@@ -23,7 +23,7 @@ in
         defaultCacheTtlSsh = 3600;        # Cache SSH key passphrase 1 hour
         maxCacheTtl = 86400;              # Max cache 24 hours
         maxCacheTtlSsh = 86400;           # Max SSH cache 24 hours
-        pinentryPackage = pkgs.pinentry-curses;  # Terminal-based PIN entry
+        pinentry.package = pkgs.pinentry-curses;  # Terminal-based PIN entry
       };
     };
   };

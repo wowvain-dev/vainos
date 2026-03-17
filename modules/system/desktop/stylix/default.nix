@@ -33,6 +33,7 @@ in
   config = lib.mkIf cfg.enable {
     stylix = {
       enable = true;
+      enableReleaseChecks = false;
       image = ./wallpaper.png; # Required by Stylix even if not displayed
       base16Scheme = theme.base16Scheme;
       polarity = theme.polarity;
