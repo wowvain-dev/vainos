@@ -12,8 +12,8 @@
   # --- Enable server modules ---
   systemSettings.server.networking.enable = true;
   systemSettings.server.caddy.enable = true;
-  systemSettings.server.containers.enable = true;
   systemSettings.server.podman.enable = true;
+  systemSettings.server.deploy.enable = true;
 
   # --- Enable security modules ---
   systemSettings.security.doas.enable = true;
