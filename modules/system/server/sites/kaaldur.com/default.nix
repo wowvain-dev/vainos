@@ -40,7 +40,7 @@ in
         Type = "oneshot";
         User = "root";
       };
-      path = [ pkgs.git pkgs.nodejs pkgs.coreutils pkgs.openssh ];
+      path = [ pkgs.git pkgs.nodejs pkgs.coreutils pkgs.openssh pkgs.bash ];
       script = ''
         set -euo pipefail
         SRC="/srv/sites/src/kaaldur.com"
