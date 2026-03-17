@@ -1,3 +1,5 @@
+# Agent/AI tooling
+.claude/
 .planning/
 
 # Machine-specific local config (contains IPs, hardware details)
