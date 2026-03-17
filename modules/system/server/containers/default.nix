@@ -1,5 +1,7 @@
-# Server containers module — OCI containers with sops secrets
-# Migrated from hosts/server/containers.nix
+# Server containers module — RETIRED (Phase 10)
+# Container definitions moved to per-site modules under modules/system/server/sites/
+# sops.age.sshKeyPaths moved to modules/system/server/deploy/default.nix
+# This module is kept as an empty shell until the next cleanup pass.
 { config, lib, ... }:
 
 let
@@ -7,24 +9,9 @@ let
 in
 {
   options.systemSettings.server.containers = {
-    enable = lib.mkEnableOption "OCI containers with sops secrets";
+    enable = lib.mkEnableOption "OCI containers (RETIRED -- use per-site modules)";
   };
 
-  config = lib.mkIf cfg.enable {
-    # sops-nix secrets for container environment
-    # Path updated for new location: modules/system/server/containers/ (4 levels up to repo root)
-    sops.defaultSopsFile = ../../../../secrets/secrets.yaml;
-    sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-    sops.secrets."app-env" = {};
-
-    virtualisation.oci-containers = {
-      backend = "podman";
-      containers.webapp = {
-        image = "containous/whoami:latest";
-        autoStart = true;
-        ports = [ "127.0.0.1:3000:80" ];
-        environmentFiles = [ config.sops.secrets."app-env".path ];
-      };
-    };
-  };
+  # No config -- module is retired.
+  # Keeping the option prevents evaluation errors if still referenced.
 }
