@@ -59,5 +59,6 @@ inputs.nixpkgs.lib.nixosSystem {
         programs.home-manager.enable = true;
       };
     }
+    inputs.stylix.nixosModules.stylix
   ] ++ systemModules ++ userModules ++ modules;
 }

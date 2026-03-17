@@ -14,13 +14,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    stylix = {
+      url = "github:danth/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     vainim = {
       url = "github:wowvain-dev/vainim";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, vainim, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, stylix, vainim, ... }@inputs:
   let
     mkHost = import ./lib/mkHost.nix { inherit inputs; };
 
