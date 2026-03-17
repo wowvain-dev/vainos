@@ -20,7 +20,7 @@ in
           scrollback_lines = 10000;
           enable_audio_bell = false;
           window_padding_width = 4;
-          background_opacity = "0.95";
+          background_opacity = lib.mkForce "0.95";
         };
 
         shellIntegration.enableZshIntegration = true;
