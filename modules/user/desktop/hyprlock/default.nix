@@ -21,7 +21,7 @@ in
           };
 
           # Background color is managed by Stylix via the hyprlock target.
-          background = [
+          background = lib.mkForce [
             {
               monitor = "";
             }
