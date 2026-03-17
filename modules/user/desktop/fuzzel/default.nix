@@ -14,8 +14,8 @@ in
       programs.fuzzel = {
         enable = true;
 
+        # Font is managed by Stylix via the fuzzel target.
         settings.main = {
-          font = "JetBrainsMono Nerd Font:size=12";
           terminal = "kitty";
           layer = "overlay";
         };

@@ -14,10 +14,7 @@ in
       programs.kitty = {
         enable = true;
 
-        font = {
-          name = "JetBrainsMono Nerd Font";
-          size = 12;
-        };
+        # Font is managed by Stylix via the kitty target.
 
         settings = {
           scrollback_lines = 10000;

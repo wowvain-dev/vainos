@@ -20,10 +20,10 @@ in
             grace = 5;
           };
 
+          # Background color is managed by Stylix via the hyprlock target.
           background = [
             {
               monitor = "";
-              color = "rgb(30, 30, 46)";
             }
           ];
 

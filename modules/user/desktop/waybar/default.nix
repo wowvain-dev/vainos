@@ -42,24 +42,11 @@ in
           };
         };
 
+        # Colors and fonts are managed by Stylix via the waybar target.
+        # Only non-themed layout styles are kept here.
         style = ''
-          * {
-            font-family: "JetBrainsMono Nerd Font", "Font Awesome 6 Free";
-            font-size: 13px;
-          }
-
-          window#waybar {
-            background-color: rgba(30, 30, 46, 0.9);
-            color: #cdd6f4;
-          }
-
           #workspaces button {
             padding: 0 5px;
-            color: #cdd6f4;
-          }
-
-          #workspaces button.active {
-            color: #89b4fa;
           }
 
           #clock, #pulseaudio, #network, #cpu, #memory, #tray {
