@@ -18,4 +18,7 @@
   # --- Enable security modules ---
   systemSettings.security.doas.enable = true;
   systemSettings.security.hosts-blocklist.enable = true;
+
+  # --- Enable CLI module ---
+  systemSettings.core.vainos-cli.enable = true;
 }
