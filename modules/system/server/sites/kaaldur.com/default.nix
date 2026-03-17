@@ -53,10 +53,10 @@ in
         fi
 
         cd "$SRC"
-        git fetch origin main
+        git fetch origin master
 
         LOCAL=$(git rev-parse HEAD)
-        REMOTE=$(git rev-parse origin/main)
+        REMOTE=$(git rev-parse origin/master)
 
         if [ "$LOCAL" = "$REMOTE" ]; then
           echo "deploy-kaaldur-com: no new commits, skipping build"
@@ -64,7 +64,7 @@ in
         fi
 
         echo "deploy-kaaldur-com: new commits detected, building..."
-        git reset --hard origin/main
+        git reset --hard origin/master
 
         npm ci
         npm run build
