@@ -56,7 +56,7 @@ in
         Type = "oneshot";
         User = "root";
       };
-      path = [ pkgs.git pkgs.podman pkgs.coreutils pkgs.openssh pkgs.bash pkgs.systemd ];
+      path = [ pkgs.git pkgs.podman pkgs.coreutils pkgs.openssh pkgs.bash pkgs.systemd pkgs.gawk pkgs.gnused ];
       script = ''
         set -euo pipefail
         SRC="/srv/sites/src/wowvain.com"
@@ -78,8 +78,14 @@ in
         cd "$SRC"
         git fetch origin
 
+        # Detect default branch from local ref (set by clone/fetch, no network needed)
+        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+        if [ -z "$DEFAULT_BRANCH" ]; then
+          DEFAULT_BRANCH="master"
+        fi
+
         LOCAL=$(git rev-parse HEAD)
-        REMOTE=$(git rev-parse origin/$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}'))
+        REMOTE=$(git rev-parse "origin/$DEFAULT_BRANCH")
 
         if [ "$LOCAL" = "$REMOTE" ] && [ "$NEEDS_BUILD" = "false" ]; then
           echo "deploy-wowvain-com: no new commits, skipping build"
