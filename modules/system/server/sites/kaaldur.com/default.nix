@@ -47,9 +47,16 @@ in
         WWW="/srv/sites/www/kaaldur.com"
 
         # Auto-clone if repo not present
+        NEEDS_BUILD=false
         if [ ! -d "$SRC/.git" ]; then
           echo "deploy-kaaldur-com: cloning repository"
           git clone git@github.com:KaaldurSoftworks/website.git "$SRC"
+          NEEDS_BUILD=true
+        fi
+
+        # Force build if www has no index.html (first deploy or cleared output)
+        if [ ! -f "$WWW/index.html" ]; then
+          NEEDS_BUILD=true
         fi
 
         cd "$SRC"
@@ -58,7 +65,7 @@ in
         LOCAL=$(git rev-parse HEAD)
         REMOTE=$(git rev-parse origin/master)
 
-        if [ "$LOCAL" = "$REMOTE" ]; then
+        if [ "$LOCAL" = "$REMOTE" ] && [ "$NEEDS_BUILD" = "false" ]; then
           echo "deploy-kaaldur-com: no new commits, skipping build"
           exit 0
         fi
