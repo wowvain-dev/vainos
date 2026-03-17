@@ -24,4 +24,8 @@
   userSettings.desktop.hyprlock.enable = true;
   userSettings.desktop.clipboard.enable = true;
   userSettings.desktop.screenshots.enable = true;
+
+  # --- Enable security modules ---
+  systemSettings.security.doas.enable = true;
+  systemSettings.security.hosts-blocklist.enable = true;
 }

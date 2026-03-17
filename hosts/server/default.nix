@@ -14,4 +14,8 @@
   systemSettings.server.caddy.enable = true;
   systemSettings.server.containers.enable = true;
   systemSettings.server.podman.enable = true;
+
+  # --- Enable security modules ---
+  systemSettings.security.doas.enable = true;
+  systemSettings.security.hosts-blocklist.enable = true;
 }
