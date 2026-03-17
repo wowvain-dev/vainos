@@ -14,6 +14,7 @@ in
     services.caddy.virtualHosts = {
       "kaaldur.com" = {
         extraConfig = ''
+          tls internal
           root * /srv/sites/www/kaaldur.com
           encode gzip
           try_files {path} /index.html
@@ -22,6 +23,7 @@ in
       };
       "www.kaaldur.com" = {
         extraConfig = ''
+          tls internal
           redir https://kaaldur.com{uri} permanent
         '';
       };
