@@ -6,20 +6,21 @@
 {
   systemSettings.networking = {
     ipv4 = {
-      address = "YOUR_IPV4_ADDRESS";
+      address = "46.224.225.195";
       prefixLength = 32;
-      gateway = "YOUR_GATEWAY_IP";
-      gatewayRoute = "YOUR_GATEWAY_IP";
+      gateway = "172.31.1.1";
+      gatewayRoute = "172.31.1.1";
     };
 
     ipv6 = {
       addresses = [
-        { address = "YOUR_IPV6_1"; prefixLength = 64; }
+        { address = "2a01:4f8:1c19:452b::1"; prefixLength = 64; }
+        { address = "2a01:4f8:1c19:452b::2"; prefixLength = 64; }
       ];
       gateway = "fe80::1";
     };
 
-    nameservers = [ "DNS_SERVER_1" "DNS_SERVER_2" ];
+    nameservers = [ "185.12.64.1" "185.12.64.2" ];
     interface = "eth0";
   };
 }
