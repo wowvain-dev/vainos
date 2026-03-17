@@ -15,6 +15,9 @@
   systemSettings.server.podman.enable = true;
   systemSettings.server.deploy.enable = true;
 
+  # --- Enable site modules ---
+  systemSettings.server.sites.kaaldur-com.enable = true;
+
   # --- Enable security modules ---
   systemSettings.security.doas.enable = true;
   systemSettings.security.hosts-blocklist.enable = true;
