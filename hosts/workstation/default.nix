@@ -36,4 +36,8 @@
 
   # --- Enable CLI module ---
   systemSettings.core.vainos-cli.enable = true;
+
+  # --- Enable maintenance modules ---
+  systemSettings.maintenance.autoUpdate.enable = false;
+  userSettings.updateNotify.enable = true;
 }
