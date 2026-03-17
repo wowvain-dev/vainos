@@ -25,6 +25,11 @@
   userSettings.desktop.clipboard.enable = true;
   userSettings.desktop.screenshots.enable = true;
 
+  # --- Enable theming modules ---
+  systemSettings.desktop.stylix.enable = true;
+  userSettings.desktop.stylix.enable = true;
+  userSettings.theme = "gruvbox-dark";
+
   # --- Enable security modules ---
   systemSettings.security.doas.enable = true;
   systemSettings.security.hosts-blocklist.enable = true;

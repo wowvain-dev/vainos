@@ -52,13 +52,7 @@ in
     # PAM for hyprlock (needed for screen lock)
     security.pam.services.hyprlock = {};
 
-    # Fonts
-    fonts.packages = with pkgs; [
-      nerd-fonts.jetbrains-mono
-      nerd-fonts.fira-code
-      font-awesome
-      noto-fonts
-      noto-fonts-color-emoji
-    ];
+    # Icon font for Waybar (Stylix manages text fonts)
+    fonts.packages = [ pkgs.font-awesome ];
   };
 }
