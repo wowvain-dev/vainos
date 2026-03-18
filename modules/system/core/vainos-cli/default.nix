@@ -13,7 +13,7 @@ in
     environment.systemPackages = [
       (pkgs.writeShellApplication {
         name = "vainos";
-        runtimeInputs = [ pkgs.coreutils pkgs.gnugrep pkgs.gawk pkgs.git pkgs.nix pkgs.nixos-rebuild pkgs.procps ];
+        runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gnugrep pkgs.gawk pkgs.git pkgs.nix pkgs.nixos-rebuild pkgs.procps ];
         text = ''
           # --- Configuration ---
           VAINOS_ROOT="''${VAINOS_ROOT:-/etc/nixos}"
@@ -139,7 +139,7 @@ in
             local env_file="/etc/vainos/games/''${name}.env"
             if [ ! -f "$env_file" ]; then
               echo "Error: Unknown game '$name'"
-              echo "Available games: $(ls /etc/vainos/games/ 2>/dev/null | sed 's/\.env$//' | tr '\n' ' ')"
+              echo "Available games: $(find /etc/vainos/games/ -maxdepth 1 -name '*.env' -printf '%f\n' 2>/dev/null | sed 's/\.env$//' | tr '\n' ' ')"
               exit 1
             fi
             # shellcheck source=/dev/null
@@ -306,6 +306,7 @@ in
               [ -f "$env_file" ] || continue
               # Source in subshell to avoid variable pollution between games
               (
+                # shellcheck disable=SC1090
                 source "$env_file"
                 local status="stopped"
                 if podman container exists "game-''${GAME_NAME}" 2>/dev/null; then
