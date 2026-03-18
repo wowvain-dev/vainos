@@ -14,6 +14,7 @@
   systemSettings.server.caddy.enable = true;
   systemSettings.server.podman.enable = true;
   systemSettings.server.deploy.enable = true;
+  systemSettings.server.games.enable = true;
 
   # --- Enable site modules ---
   systemSettings.server.sites.electrisim.enable = true;
