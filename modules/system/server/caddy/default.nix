@@ -14,10 +14,6 @@ in
     services.caddy = {
       enable = true;
 
-      # Use staging ACME CA during development to avoid Let's Encrypt rate limits
-      # Remove this line (or set to null) when DNS points to this server for production certs
-      acmeCA = "https://acme-staging-v02.api.letsencrypt.org/directory";
-
       # Global Caddy settings
       globalConfig = ''
         email admin@wowvain.com
