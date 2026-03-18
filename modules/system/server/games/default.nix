@@ -121,13 +121,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Persistent storage directories -- one per game (INFRA-05)
+    # Persistent storage directories -- one per game + volume subdirectories (INFRA-05)
     # Container images create their own internal subdirectory structure
     systemd.tmpfiles.rules = [
       "d /srv/games 0755 root root -"
-    ] ++ lib.mapAttrsToList (name: _game:
-      "d /srv/games/${name} 0755 root root -"
-    ) games;
+    ] ++ lib.concatMap (name:
+      let game = games.${name}; in
+      [ "d /srv/games/${name} 0755 root root -" ]
+      ++ map (v: "d /srv/games/${name}/${v.host} 0755 root root -") game.volumes
+    ) (builtins.attrNames games);
 
     # Firewall rules derived from registry (INFRA-06)
     # Individual ports, not ranges -- NixOS deduplicates automatically
