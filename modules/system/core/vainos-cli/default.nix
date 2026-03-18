@@ -276,12 +276,12 @@ in
             case "$GAME_SHUTDOWN_METHOD" in
               rcon)
                 echo "Saving world..."
-                podman exec "game-''${name}" rcon-cli save-all
+                podman exec "game-''${name}" rcon-cli save-all || true
                 sleep 5
                 echo "Stopping server..."
-                podman exec "game-''${name}" rcon-cli stop
-                # Wait for container to exit naturally (mc-server-runner handles clean shutdown)
-                podman wait "game-''${name}" --condition stopped 2>/dev/null || podman stop --time 30 "game-''${name}"
+                # Use podman stop (SIGTERM) -- mc-server-runner handles graceful shutdown
+                # Do NOT use rcon-cli stop: it kills the Java process but mc-server-runner restarts it
+                podman stop --time 30 "game-''${name}"
                 ;;
               signal)
                 echo "Stopping ''${name}..."
