@@ -101,7 +101,7 @@ let
       ) game.volumes;
       volCount = "VOLUME_COUNT=${toString (builtins.length game.volumes)}";
       envVars = lib.concatStringsSep "\n" (
-        lib.mapAttrsToList (k: v: "ENV_${k}=${v}") game.env
+        lib.mapAttrsToList (k: v: "ENV_${k}=\"${v}\"") game.env
       );
       envCount = "ENV_COUNT=${toString (builtins.length (builtins.attrNames game.env))}";
     in lib.concatStringsSep "\n" [
