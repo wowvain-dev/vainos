@@ -151,5 +151,8 @@ in
 
     # Caddy -- critical infrastructure, low OOM score
     systemd.services.caddy.serviceConfig.OOMScoreAdjust = -500;
+
+    # Enable podman-restart.service so game containers with --restart=always survive reboots (INFRA-08)
+    systemd.services.podman-restart.wantedBy = [ "multi-user.target" ];
   };
 }
