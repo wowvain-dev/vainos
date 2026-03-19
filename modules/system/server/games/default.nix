@@ -44,6 +44,8 @@ let
         SERVER_PORT = "2456";
         SERVER_PUBLIC = "0";
         BACKUPS = "true";
+        UPDATE_CRON = "";
+        RESTART_CRON = "";
       };
       memory = "4G";
       shutdownMethod = "signal";
@@ -66,9 +68,14 @@ let
         MAX_RAM = "4G";
         GAME_VERSION = "public";
         STEAM_VAC = "true";
+        RCON_PORT = "27015";
+        RCON_PASSWORD = "changeme_rcon";
+        DEFAULT_PORT = "16261";
+        UDP_PORT = "16262";
       };
       memory = "4G";
       shutdownMethod = "signal";
+      owner = "1000:1000";  # steam user inside container
     };
   };
 
@@ -126,9 +133,13 @@ in
     systemd.tmpfiles.rules = [
       "d /srv/games 0755 root root -"
     ] ++ lib.concatMap (name:
-      let game = games.${name}; in
-      [ "d /srv/games/${name} 0755 root root -" ]
-      ++ map (v: "d /srv/games/${name}/${v.host} 0755 root root -") game.volumes
+      let
+        game = games.${name};
+        user = if game ? owner then (builtins.elemAt (lib.splitString ":" game.owner) 0) else "root";
+        group = if game ? owner then (builtins.elemAt (lib.splitString ":" game.owner) 1) else "root";
+      in
+      [ "d /srv/games/${name} 0755 ${user} ${group} -" ]
+      ++ map (v: "d /srv/games/${name}/${v.host} 0755 ${user} ${group} -") game.volumes
     ) (builtins.attrNames games);
 
     # Firewall rules derived from registry (INFRA-06)
