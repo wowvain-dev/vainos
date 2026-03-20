@@ -17,6 +17,7 @@
 
   # --- Enable site modules ---
   systemSettings.server.sites.kaaldur-com.enable = true;
+  systemSettings.server.sites.wowvain-com.enable = true;
 
   # --- Enable security modules ---
   systemSettings.security.doas.enable = true;
