@@ -44,6 +44,8 @@ let
         SERVER_PORT = "2456";
         SERVER_PUBLIC = "0";
         BACKUPS = "true";
+        UPDATE_CRON = "";
+        RESTART_CRON = "";
       };
       memory = "4G";
       shutdownMethod = "signal";
@@ -66,9 +68,14 @@ let
         MAX_RAM = "4G";
         GAME_VERSION = "public";
         STEAM_VAC = "true";
+        RCON_PORT = "27015";
+        RCON_PASSWORD = "changeme_rcon";
+        DEFAULT_PORT = "16261";
+        UDP_PORT = "16262";
       };
       memory = "4G";
       shutdownMethod = "signal";
+      owner = "1000:1000";  # steam user inside container
     };
   };
 
@@ -126,9 +133,13 @@ in
     systemd.tmpfiles.rules = [
       "d /srv/games 0755 root root -"
     ] ++ lib.concatMap (name:
-      let game = games.${name}; in
-      [ "d /srv/games/${name} 0755 root root -" ]
-      ++ map (v: "d /srv/games/${name}/${v.host} 0755 root root -") game.volumes
+      let
+        game = games.${name};
+        user = if game ? owner then (builtins.elemAt (lib.splitString ":" game.owner) 0) else "root";
+        group = if game ? owner then (builtins.elemAt (lib.splitString ":" game.owner) 1) else "root";
+      in
+      [ "d /srv/games/${name} 0755 ${user} ${group} -" ]
+      ++ map (v: "d /srv/games/${name}/${v.host} 0755 ${user} ${group} -") game.volumes
     ) (builtins.attrNames games);
 
     # Firewall rules derived from registry (INFRA-06)
@@ -156,5 +167,139 @@ in
 
     # Enable podman-restart.service so game containers with --restart=always survive reboots (INFRA-08)
     systemd.services.podman-restart.wantedBy = [ "multi-user.target" ];
+
+    # Game server landing pages -- browser-accessible connection instructions
+    services.caddy.virtualHosts = {
+      "minecraft.wowvain.com" = {
+        extraConfig = ''
+          header Content-Type "text/html; charset=utf-8"
+          respond <<HTML
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Minecraft Server</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+                .card { background: #16213e; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+                h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #7bed9f; }
+                .subtitle { color: #888; margin-bottom: 2rem; }
+                .step { margin-bottom: 1.2rem; }
+                .step-num { display: inline-block; width: 28px; height: 28px; background: #7bed9f; color: #1a1a2e; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; font-size: 0.85rem; margin-right: 0.5rem; }
+                .addr { background: #0f3460; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 1.2rem; text-align: center; color: #7bed9f; cursor: pointer; transition: background 0.2s; }
+                .addr:hover { background: #1a4a7a; }
+                .addr:active { background: #245a8a; }
+                .hint { font-size: 0.85rem; color: #666; text-align: center; }
+                .status { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #1f3460; font-size: 0.9rem; color: #888; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h1>Minecraft</h1>
+                <p class="subtitle">Java Edition Server</p>
+                <div class="step"><span class="step-num">1</span> Open Minecraft, go to <strong>Multiplayer</strong></div>
+                <div class="step"><span class="step-num">2</span> Click <strong>Add Server</strong></div>
+                <div class="step"><span class="step-num">3</span> Enter the server address:</div>
+                <div class="addr" onclick="navigator.clipboard.writeText('minecraft.wowvain.com')" title="Click to copy">minecraft.wowvain.com</div>
+                <p class="hint">Click to copy &middot; No port needed</p>
+                <div class="status">
+                  <strong>Version:</strong> Latest &middot; <strong>Type:</strong> Vanilla
+                </div>
+              </div>
+            </body>
+            </html>
+          HTML
+        '';
+      };
+      "valheim.wowvain.com" = {
+        extraConfig = ''
+          header Content-Type "text/html; charset=utf-8"
+          respond <<HTML
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Valheim Server</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+                .card { background: #16213e; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+                h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #ffa502; }
+                .subtitle { color: #888; margin-bottom: 2rem; }
+                .step { margin-bottom: 1.2rem; }
+                .step-num { display: inline-block; width: 28px; height: 28px; background: #ffa502; color: #1a1a2e; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; font-size: 0.85rem; margin-right: 0.5rem; }
+                .addr { background: #0f3460; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 1.2rem; text-align: center; color: #ffa502; cursor: pointer; transition: background 0.2s; }
+                .addr:hover { background: #1a4a7a; }
+                .addr:active { background: #245a8a; }
+                .hint { font-size: 0.85rem; color: #666; text-align: center; }
+                .status { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #1f3460; font-size: 0.9rem; color: #888; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h1>Valheim</h1>
+                <p class="subtitle">Dedicated Server</p>
+                <div class="step"><span class="step-num">1</span> Open Valheim, click <strong>Join Game</strong></div>
+                <div class="step"><span class="step-num">2</span> Click <strong>Add Server</strong></div>
+                <div class="step"><span class="step-num">3</span> Enter the server address:</div>
+                <div class="addr" onclick="navigator.clipboard.writeText('valheim.wowvain.com')" title="Click to copy">valheim.wowvain.com</div>
+                <p class="hint">Click to copy &middot; No port needed (uses default 2456)</p>
+                <div class="step"><span class="step-num">4</span> Password: <strong>changeme</strong></div>
+                <div class="status">
+                  <strong>World:</strong> vainos &middot; <strong>Public:</strong> No
+                </div>
+              </div>
+            </body>
+            </html>
+          HTML
+        '';
+      };
+      "zomboid.wowvain.com" = {
+        extraConfig = ''
+          header Content-Type "text/html; charset=utf-8"
+          respond <<HTML
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Project Zomboid Server</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+                .card { background: #16213e; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+                h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #e74c3c; }
+                .subtitle { color: #888; margin-bottom: 2rem; }
+                .step { margin-bottom: 1.2rem; }
+                .step-num { display: inline-block; width: 28px; height: 28px; background: #e74c3c; color: #fff; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; font-size: 0.85rem; margin-right: 0.5rem; }
+                .addr { background: #0f3460; border-radius: 8px; padding: 1rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 1.2rem; text-align: center; color: #e74c3c; cursor: pointer; transition: background 0.2s; }
+                .addr:hover { background: #1a4a7a; }
+                .addr:active { background: #245a8a; }
+                .hint { font-size: 0.85rem; color: #666; text-align: center; }
+                .status { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #1f3460; font-size: 0.9rem; color: #888; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h1>Project Zomboid</h1>
+                <p class="subtitle">Dedicated Server</p>
+                <div class="step"><span class="step-num">1</span> Open Project Zomboid, go to <strong>Join</strong></div>
+                <div class="step"><span class="step-num">2</span> Enter the server address:</div>
+                <div class="addr" onclick="navigator.clipboard.writeText('zomboid.wowvain.com')" title="Click to copy">zomboid.wowvain.com</div>
+                <p class="hint">Click to copy &middot; Leave port as default (16261)</p>
+                <div class="step"><span class="step-num">3</span> Enter your account username and password</div>
+                <div class="status">
+                  <strong>Server:</strong> Vainos Zomboid &middot; <strong>Max Players:</strong> 8
+                </div>
+              </div>
+            </body>
+            </html>
+          HTML
+        '';
+      };
+    };
   };
 }
