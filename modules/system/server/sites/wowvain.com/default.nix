@@ -14,14 +14,12 @@ in
     services.caddy.virtualHosts = {
       "wowvain.com" = {
         extraConfig = ''
-          tls internal
           encode gzip
           reverse_proxy 127.0.0.1:3001
         '';
       };
       "www.wowvain.com" = {
         extraConfig = ''
-          tls internal
           redir https://wowvain.com{uri} permanent
         '';
       };

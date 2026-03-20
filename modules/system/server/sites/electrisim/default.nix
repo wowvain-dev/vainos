@@ -14,7 +14,6 @@ in
     # for electrisim (API + static) before the kaaldur.com catch-all handle block.
     # Uses mkForce because this module owns the full kaaldur.com extraConfig when enabled.
     services.caddy.virtualHosts."kaaldur.com".extraConfig = lib.mkForce ''
-      tls internal
       encode gzip
 
       handle_path /tools/electrisim/api/* {
