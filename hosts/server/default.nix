@@ -16,6 +16,7 @@
   systemSettings.server.deploy.enable = true;
 
   # --- Enable site modules ---
+  systemSettings.server.sites.electrisim.enable = true;
   systemSettings.server.sites.kaaldur-com.enable = true;
   systemSettings.server.sites.wowvain-com.enable = true;
 
