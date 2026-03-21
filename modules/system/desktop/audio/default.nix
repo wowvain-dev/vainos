@@ -1,4 +1,4 @@
-# Desktop audio module — PipeWire + WirePlumber Bluetooth audio
+# Desktop audio module — PipeWire + WirePlumber + Elgato XLR fix
 # Migrated from hosts/workstation/desktop.nix (PipeWire portion)
 { config, lib, ... }:
 
@@ -29,6 +29,32 @@ in
           "bluez5.enable-hw-volume" = true;
           "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
         };
+      };
+
+      # Elgato Wave XLR / XLR Dock mic fix
+      # Without this, the mic produces no audio when playback is also active.
+      # Setting node.always-process = true on the input node forces the mic
+      # capture to stay active regardless of playback state.
+      # Source: https://github.com/jmansar/wavexlr-on-linux-cfg
+      wireplumber.extraConfig."51-elgato-xlr" = {
+        "monitor.alsa.rules" = [
+          {
+            matches = [
+              { "node.name" = "~alsa_input.usb-Elgato_Systems_Elgato_Wave_XLR_*"; }
+            ];
+            actions.update-props = {
+              "node.always-process" = true;
+            };
+          }
+          {
+            matches = [
+              { "node.name" = "~alsa_input.usb-Elgato_Systems_Elgato_XLR_Dock*"; }
+            ];
+            actions.update-props = {
+              "node.always-process" = true;
+            };
+          }
+        ];
       };
     };
   };
