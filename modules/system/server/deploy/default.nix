@@ -1,6 +1,6 @@
 # Server deployment infrastructure — shared base for multi-site hosting
 # Provides: zram swap, /srv/sites/ directory tree, sops age key config
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   cfg = config.systemSettings.server.deploy;
@@ -23,6 +23,9 @@ in
       "d /srv/sites/src 0755 root root -"
       "d /srv/sites/www 0755 root caddy -"
     ];
+
+    # sops CLI for encrypting/managing secrets on the server
+    environment.systemPackages = [ pkgs.sops ];
 
     # sops-nix age key -- moved from containers module
     # Required for any sops secret decryption on the server

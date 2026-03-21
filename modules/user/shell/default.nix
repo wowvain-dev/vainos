@@ -16,6 +16,9 @@ in
         enableCompletion = true;
         autosuggestion.enable = true;
         syntaxHighlighting.enable = true;
+        sessionVariables = {
+          VAINOS_ROOT = "/home/wowvain/.vainos";
+        };
         history = {
           size = 10000;
           ignoreAllDups = true;

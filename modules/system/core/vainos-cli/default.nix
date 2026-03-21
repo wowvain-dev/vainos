@@ -17,6 +17,15 @@ in
         text = ''
           # --- Configuration ---
           VAINOS_ROOT="''${VAINOS_ROOT:-/etc/nixos}"
+
+          # Wrapper: run podman as root (doas if needed, direct if already root)
+          pm() {
+            if [ "$(id -u)" -eq 0 ]; then
+              podman "$@"
+            else
+              doas podman "$@"
+            fi
+          }
           if [ ! -f "$VAINOS_ROOT/flake.nix" ]; then
             echo "Error: No flake.nix found at $VAINOS_ROOT"
             echo "Set VAINOS_ROOT to your vainos flake directory"
@@ -178,10 +187,22 @@ in
           game_start() {
             local name="$1"
             local force=false
+            local -a extra_envs=()
             shift || true
             while [ $# -gt 0 ]; do
               case "$1" in
                 --force) force=true ;;
+                --env)
+                  shift
+                  if [ $# -eq 0 ]; then
+                    echo "Error: --env requires a KEY=VALUE argument"
+                    exit 1
+                  fi
+                  extra_envs+=("$1")
+                  ;;
+                --env=*)
+                  extra_envs+=("''${1#--env=}")
+                  ;;
               esac
               shift
             done
@@ -189,7 +210,7 @@ in
             load_game_config "$name"
 
             # Check if already running
-            if podman container exists "game-''${name}" 2>/dev/null; then
+            if pm container exists "game-''${name}" 2>/dev/null; then
               echo "Error: game-''${name} is already running"
               echo "Use 'vainos game stop ''${name}' first"
               exit 1
@@ -203,7 +224,7 @@ in
             echo "Starting ''${name}..."
 
             # Build podman run command from .env variables
-            local cmd=(podman run -d
+            local -a cmd_args=(run -d
               --name "game-''${name}"
               --restart always
               --memory "$GAME_MEMORY"
@@ -219,7 +240,7 @@ in
               spec="''${spec%\"}"
               spec="''${spec#\"}"
               local port="''${spec%%/*}"
-              cmd+=(-p "''${port}:''${spec}")
+              cmd_args+=(-p "''${port}:''${spec}")
             done
 
             # Add volumes (VOLUME_0="/srv/games/minecraft/data:/data" -> -v ...)
@@ -228,7 +249,7 @@ in
               local vol="''${!var}"
               vol="''${vol%\"}"
               vol="''${vol#\"}"
-              cmd+=(-v "$vol")
+              cmd_args+=(-v "$vol")
             done
 
             # Add environment variables (ENV_EULA="TRUE" -> -e EULA=TRUE)
@@ -237,15 +258,20 @@ in
               # Remove surrounding quotes if present
               value="''${value%\"}"
               value="''${value#\"}"
-              cmd+=(-e "''${env_key}=''${value}")
+              cmd_args+=(-e "''${env_key}=''${value}")
             done < <(grep '^ENV_' "$env_file")
 
+            # Add extra env overrides (from --env flags, e.g., bot password injection)
+            for env_override in "''${extra_envs[@]}"; do
+              cmd_args+=(-e "$env_override")
+            done
+
             # Add image
-            cmd+=("$GAME_IMAGE")
+            cmd_args+=("$GAME_IMAGE")
 
             # Run container
             local container_id
-            container_id=$("''${cmd[@]}")
+            container_id=$(pm "''${cmd_args[@]}")
             echo "Container: ''${container_id:0:12}"
 
             # Show ports
@@ -267,7 +293,7 @@ in
             load_game_config "$name"
 
             # Check if running
-            if ! podman container exists "game-''${name}" 2>/dev/null; then
+            if ! pm container exists "game-''${name}" 2>/dev/null; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
@@ -276,26 +302,26 @@ in
             case "$GAME_SHUTDOWN_METHOD" in
               rcon)
                 echo "Saving world..."
-                podman exec "game-''${name}" rcon-cli save-all || true
+                pm exec "game-''${name}" rcon-cli save-all || true
                 sleep 5
                 echo "Stopping server..."
                 # Use podman stop (SIGTERM) -- mc-server-runner handles graceful shutdown
                 # Do NOT use rcon-cli stop: it kills the Java process but mc-server-runner restarts it
-                podman stop --time 30 "game-''${name}"
+                pm stop --time 30 "game-''${name}"
                 ;;
               signal)
                 echo "Stopping ''${name}..."
-                podman kill --signal="''${GAME_SHUTDOWN_SIGNAL}" "game-''${name}"
-                podman stop --time 30 "game-''${name}" 2>/dev/null || true
+                pm kill --signal="''${GAME_SHUTDOWN_SIGNAL}" "game-''${name}"
+                pm stop --time 30 "game-''${name}" 2>/dev/null || true
                 ;;
               *)
                 echo "Stopping ''${name}..."
-                podman stop --time 30 "game-''${name}"
+                pm stop --time 30 "game-''${name}"
                 ;;
             esac
 
             # Remove container to clear restart-always intent (so it stays stopped across reboots)
-            podman rm "game-''${name}" 2>/dev/null || true
+            pm rm "game-''${name}" 2>/dev/null || true
             echo "Stopped."
           }
 
@@ -309,7 +335,7 @@ in
                 # shellcheck disable=SC1090
                 source "$env_file"
                 local status="stopped"
-                if podman container exists "game-''${GAME_NAME}" 2>/dev/null; then
+                if pm container exists "game-''${GAME_NAME}" 2>/dev/null; then
                   status="running"
                 fi
                 # Build port display
@@ -329,21 +355,21 @@ in
           # --- Subcommand: game status (CLI-10) ---
           game_status() {
             local name="$1"
-            if ! podman container exists "game-''${name}" 2>/dev/null; then
+            if ! pm container exists "game-''${name}" 2>/dev/null; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
-            podman stats --no-stream "game-''${name}"
+            pm stats --no-stream "game-''${name}"
           }
 
           # --- Subcommand: game logs (CLI-11) ---
           game_logs() {
             local name="$1"
-            if ! podman container exists "game-''${name}" 2>/dev/null; then
+            if ! pm container exists "game-''${name}" 2>/dev/null; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
-            podman logs -f "game-''${name}"
+            pm logs -f "game-''${name}"
           }
 
           # --- Subcommand: game (sub-dispatcher) ---
@@ -352,7 +378,7 @@ in
               echo "Usage: vainos game <command> [args]"
               echo ""
               echo "Commands:"
-              echo "  start <name> [--force]  Start a game server"
+              echo "  start <name> [--force] [--env KEY=VALUE]  Start a game server"
               echo "  stop <name>             Stop a game server (graceful shutdown)"
               echo "  list                    List all games and their status"
               echo "  status <name>           Show game server resource usage"
@@ -365,7 +391,7 @@ in
 
             case "$subcmd" in
               start)
-                if [ $# -eq 0 ]; then echo "Usage: vainos game start <name> [--force]"; exit 1; fi
+                if [ $# -eq 0 ]; then echo "Usage: vainos game start <name> [--force] [--env KEY=VALUE]"; exit 1; fi
                 game_start "$@"
                 ;;
               stop)

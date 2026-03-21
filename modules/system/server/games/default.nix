@@ -6,7 +6,30 @@
 let
   cfg = config.systemSettings.server.games;
 
-  # Single source of truth for all game server definitions
+  # === Game Server Registry ===
+  # Single source of truth for all game server definitions.
+  # Each game entry drives: .env config generation, tmpfiles directories, firewall rules.
+  #
+  # Adding mods to a game:
+  #   Mods use the existing `volumes` and `env` fields -- no special "mods" field needed.
+  #   Example: Adding Forge to Minecraft:
+  #     env = { TYPE = "FORGE"; VERSION = "1.20.4"; FORGEVERSION = "latest"; /* ... */ };
+  #   Example: Adding a mod volume:
+  #     volumes = [ { host = "data"; container = "/data"; } { host = "mods"; container = "/data/mods"; } ];
+  #   tmpfiles rules auto-create all volume directories under /srv/games/<name>/.
+  #   After editing, run: nixos-rebuild switch (same workflow as adding a game).
+  #
+  # Fields per game:
+  #   image             - Container image (e.g., "itzg/minecraft-server:java21")
+  #   ports             - List of { port; protocol; } for firewall and -p flags
+  #   volumes           - List of { host; container; } -- host is relative to /srv/games/<name>/
+  #   env               - Arbitrary env vars passed as -e flags to podman
+  #   memory            - Memory limit string (e.g., "4G")
+  #   shutdownMethod    - "rcon" | "signal" -- how CLI gracefully stops the game
+  #   shutdownSignal    - Signal name for signal method (default: SIGTERM)
+  #   owner             - Optional "UID:GID" for volume ownership (e.g., "1000:1000")
+  #   playerCheckMethod - "rcon-query" | "log-parse" | "none" -- how bot checks for connected players
+  #   passwordEnvVar    - Env var name for server password (e.g., "SERVER_PASS") -- empty string = no password
   games = {
     minecraft = {
       image = "itzg/minecraft-server:java21";
@@ -26,6 +49,8 @@ let
       };
       memory = "4G";
       shutdownMethod = "rcon";
+      playerCheckMethod = "rcon-query";
+      passwordEnvVar = "RCON_PASSWORD";
     };
     valheim = {
       image = "lloesche/valheim-server:latest";
@@ -50,6 +75,8 @@ let
       memory = "4G";
       shutdownMethod = "signal";
       shutdownSignal = "SIGINT";
+      playerCheckMethod = "log-parse";
+      passwordEnvVar = "SERVER_PASS";
     };
     zomboid = {
       image = "renegademaster/zomboid-dedicated-server:latest";
@@ -76,6 +103,8 @@ let
       memory = "4G";
       shutdownMethod = "signal";
       owner = "1000:1000";  # steam user inside container
+      playerCheckMethod = "log-parse";
+      passwordEnvVar = "ADMIN_PASSWORD";
     };
   };
 
@@ -98,6 +127,8 @@ let
         "GAME_MEMORY=${game.memory}"
         "GAME_SHUTDOWN_METHOD=${game.shutdownMethod}"
         "GAME_SHUTDOWN_SIGNAL=${game.shutdownSignal or "SIGTERM"}"
+        "GAME_PLAYER_CHECK=${game.playerCheckMethod or "none"}"
+        "GAME_PASSWORD_ENV=${game.passwordEnvVar or ""}"
       ];
       portVars = lib.concatImapStringsSep "\n" (i: p:
         "PORT_${toString (i - 1)}=\"${toString p.port}/${p.protocol}\""

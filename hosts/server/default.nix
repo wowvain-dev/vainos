@@ -16,6 +16,12 @@
   systemSettings.server.deploy.enable = true;
   systemSettings.server.games.enable = true;
 
+  # --- Enable Discord bot ---
+  systemSettings.server.discord-bot.enable = true;
+  systemSettings.server.discord-bot.guildId = "REPLACE_WITH_GUILD_ID";
+  systemSettings.server.discord-bot.channelId = "REPLACE_WITH_CHANNEL_ID";
+  systemSettings.server.discord-bot.adminRoleId = "REPLACE_WITH_ROLE_ID";
+
   # --- Enable site modules ---
   systemSettings.server.sites.electrisim.enable = true;
   systemSettings.server.sites.kaaldur-com.enable = true;
