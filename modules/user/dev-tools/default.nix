@@ -59,6 +59,22 @@ in
 
         # --- Odin (DEV-14) ---
         odin
+
+        # --- Zig (DEV-15) ---
+        zig
+        zls         # zig language server
+
+        # --- Nim (DEV-16) ---
+        nim
+        nimble      # nim package manager
+
+        # --- Elixir (DEV-17) ---
+        elixir      # includes Erlang/OTP as a dependency
+        erlang      # explicit Erlang for shell access (erl)
+
+        # --- Ruby (DEV-18) ---
+        ruby
+        bundler     # ruby dependency manager
       ];
     };
   };

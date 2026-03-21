@@ -14,6 +14,7 @@
   systemSettings.desktop.audio.enable = true;
   systemSettings.desktop.gpu.enable = true;
   systemSettings.desktop.bluetooth.enable = true;
+  systemSettings.desktop.gaming.enable = true;
 
   # --- Enable desktop user modules ---
   userSettings.desktop.hyprland.enable = true;
@@ -24,6 +25,18 @@
   userSettings.desktop.hyprlock.enable = true;
   userSettings.desktop.clipboard.enable = true;
   userSettings.desktop.screenshots.enable = true;
+
+  # --- Enable application modules ---
+  userSettings.desktop.alacritty.enable = true;
+  userSettings.desktop.firefox.enable = true;
+  userSettings.desktop.yazi.enable = true;
+  userSettings.desktop.discord.enable = true;
+  userSettings.desktop.whatsapp.enable = true;
+  userSettings.desktop.emacs.enable = true;
+  userSettings.desktop.vscode.enable = true;
+  userSettings.desktop.zed.enable = true;
+  userSettings.desktop.blender.enable = true;
+  userSettings.desktop.godot.enable = true;
 
   # --- Enable theming modules ---
   systemSettings.desktop.stylix.enable = true;
