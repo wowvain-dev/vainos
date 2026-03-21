@@ -142,6 +142,33 @@ in
             fi
           }
 
+          PASSWORD_DIR="/var/lib/vainos-games/passwords"
+
+          # --- Helper: generate and persist a game password ---
+          generate_password() {
+            local name="$1"
+            local pw_type="$2"  # "numeric" or "alphanumeric"
+            local pw_file="''${PASSWORD_DIR}/''${name}.txt"
+            mkdir -p "$PASSWORD_DIR"
+            local password
+            if [ "$pw_type" = "numeric" ]; then
+              password="$(shuf -i 1-9 -n 4 | tr -d '\n')"
+            else
+              password="$(head -c 16 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)"
+            fi
+            echo -n "$password" > "$pw_file"
+            echo "$password"
+          }
+
+          # --- Helper: read existing password for a game ---
+          read_password() {
+            local name="$1"
+            local pw_file="''${PASSWORD_DIR}/''${name}.txt"
+            if [ -f "$pw_file" ]; then
+              cat "$pw_file"
+            fi
+          }
+
           # --- Helper: load game config from registry .env ---
           load_game_config() {
             local name="$1"
@@ -210,21 +237,58 @@ in
             load_game_config "$name"
 
             # Check if already running
-            if pm container exists "game-''${name}" 2>/dev/null; then
+            if pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
               echo "Error: game-''${name} is already running"
               echo "Use 'vainos game stop ''${name}' first"
               exit 1
             fi
+
+            # Clean up dead container with same name
+            pm rm "game-''${name}" 2>/dev/null || true
 
             # Memory pre-flight (SAFE-01)
             if [ "$force" != true ]; then
               check_memory
             fi
 
+            # Auto-shutdown: if MAX_RUNNING_GAMES reached, stop an empty server
+            local running_games
+            running_games="$(pm ps --format '{{.Names}}' 2>/dev/null | grep '^game-' || true)"
+            local running_count
+            running_count="$(echo "$running_games" | grep -c . || true)"
+            if [ "$running_count" -ge "$MAX_RUNNING_GAMES" ]; then
+              echo "''${running_count} game(s) already running (max ''${MAX_RUNNING_GAMES}). Checking for empty servers..."
+              local stopped_one=false
+              while IFS= read -r container_name; do
+                [ -n "$container_name" ] || continue
+                local gname="''${container_name#game-}"
+                local players
+                players="$(count_players "$gname")"
+                if [ "$players" -eq 0 ]; then
+                  echo "Auto-stopping empty server: ''${gname}"
+                  game_stop "$gname"
+                  stopped_one=true
+                  break
+                fi
+              done <<< "$running_games"
+              if [ "$stopped_one" != true ]; then
+                echo "Error: all running servers have active players, cannot free resources"
+                echo "Stop a server manually first: vainos game stop <name>"
+                exit 1
+              fi
+            fi
+
             echo "Starting ''${name}..."
 
+            # --- Password generation (CLI owns this) ---
+            local password=""
+            if [ -n "$GAME_PASSWORD_ENV" ]; then
+              password="$(generate_password "$name" "$GAME_PASSWORD_TYPE")"
+              extra_envs+=("''${GAME_PASSWORD_ENV}=''${password}")
+            fi
+
             # Build podman run command from .env variables
-            local -a cmd_args=(run -d
+            local -a cmd_args=(run -d -i
               --name "game-''${name}"
               --restart always
               --memory "$GAME_MEMORY"
@@ -236,7 +300,6 @@ in
             for ((i=0; i<PORT_COUNT; i++)); do
               local var="PORT_''${i}"
               local spec="''${!var}"
-              # Remove quotes if present
               spec="''${spec%\"}"
               spec="''${spec#\"}"
               local port="''${spec%%/*}"
@@ -255,16 +318,63 @@ in
             # Add environment variables (ENV_EULA="TRUE" -> -e EULA=TRUE)
             while IFS='=' read -r key value; do
               local env_key="''${key#ENV_}"
-              # Remove surrounding quotes if present
               value="''${value%\"}"
               value="''${value#\"}"
               cmd_args+=(-e "''${env_key}=''${value}")
             done < <(grep '^ENV_' "$env_file")
 
-            # Add extra env overrides (from --env flags, e.g., bot password injection)
+            # Add extra env overrides (--env flags + generated password)
             for env_override in "''${extra_envs[@]}"; do
               cmd_args+=(-e "$env_override")
             done
+
+            # --- Pre-start password hooks (write password to game-specific config) ---
+            if [ -n "$password" ]; then
+              # Helper: find host path for a container mount
+              find_host_vol() {
+                local target="$1"
+                for ((i=0; i<VOLUME_COUNT; i++)); do
+                  local var="VOLUME_''${i}"
+                  local vol="''${!var}"
+                  vol="''${vol%\"}"
+                  vol="''${vol#\"}"
+                  if [[ "$vol" == *":''${target}" ]]; then
+                    echo "''${vol%%:*}"
+                    return
+                  fi
+                done
+              }
+
+              case "$GAME_PASSWORD_WRITE" in
+                minecraft-plugin)
+                  local data_vol
+                  data_vol="$(find_host_vol /data)"
+                  if [ -n "$data_vol" ]; then
+                    local pw_plugin_dir="''${data_vol}/plugins/Passwords"
+                    mkdir -p "$pw_plugin_dir"
+                    cat > "''${pw_plugin_dir}/config.yml" <<PWCFG
+check-type: server
+server:
+  password: $password
+  staff-password: $password
+PWCFG
+                    chown -R 1000:1000 "''${data_vol}/plugins"
+                  fi
+                  ;;
+                zomboid-ini)
+                  local data_vol
+                  data_vol="$(find_host_vol /home/steam/Zomboid)"
+                  if [ -n "$data_vol" ]; then
+                    # Find the server .ini file (name matches SERVER_NAME env)
+                    local ini_file
+                    ini_file="$(find "$data_vol/Server/" -maxdepth 1 -name '*.ini' -print -quit 2>/dev/null)"
+                    if [ -n "$ini_file" ]; then
+                      sed -i "s/^Password=.*/Password=''${password}/" "$ini_file"
+                    fi
+                  fi
+                  ;;
+              esac
+            fi
 
             # Add image
             cmd_args+=("$GAME_IMAGE")
@@ -284,7 +394,39 @@ in
               local port="''${spec%%/*}"
               ports+="''${port} "
             done
-            echo "Running on port(s): ''${ports}"
+            echo "Ports: ''${ports}"
+
+            # Wait for server to be ready
+            if [ -n "$GAME_READY_PATTERN" ]; then
+              local timeout=300
+              local elapsed=0
+              printf "Waiting for server to be ready "
+              while [ "$elapsed" -lt "$timeout" ]; do
+                if pm logs "game-''${name}" 2>&1 | grep -q "$GAME_READY_PATTERN"; then
+                  printf "\n"
+                  echo "Server is live!"
+                  if [ -n "$password" ]; then
+                    echo "Password: $password"
+                  fi
+                  return
+                fi
+                # Check container is still running
+                if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+                  printf "\n"
+                  echo "Error: container exited unexpectedly"
+                  exit 1
+                fi
+                printf "."
+                sleep 5
+                elapsed=$((elapsed + 5))
+              done
+              printf "\n"
+              echo "Warning: server did not become ready within ''${timeout}s (may still be starting)"
+            fi
+
+            if [ -n "$password" ]; then
+              echo "Password: $password"
+            fi
           }
 
           # --- Subcommand: game stop (CLI-08, SAFE-03) ---
@@ -293,7 +435,7 @@ in
             load_game_config "$name"
 
             # Check if running
-            if ! pm container exists "game-''${name}" 2>/dev/null; then
+            if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
@@ -327,6 +469,9 @@ in
 
           # --- Subcommand: game list (CLI-09) ---
           game_list() {
+            # Fetch running containers once to avoid multiple doas prompts
+            local running_containers
+            running_containers="$(pm ps --format '{{.Names}}' 2>/dev/null || true)"
             printf "%-12s %-10s %-20s %s\n" "GAME" "STATUS" "PORTS" "MEMORY"
             for env_file in /etc/vainos/games/*.env; do
               [ -f "$env_file" ] || continue
@@ -335,7 +480,7 @@ in
                 # shellcheck disable=SC1090
                 source "$env_file"
                 local status="stopped"
-                if pm container exists "game-''${GAME_NAME}" 2>/dev/null; then
+                if echo "$running_containers" | grep -q "^game-''${GAME_NAME}$"; then
                   status="running"
                 fi
                 # Build port display
@@ -355,7 +500,7 @@ in
           # --- Subcommand: game status (CLI-10) ---
           game_status() {
             local name="$1"
-            if ! pm container exists "game-''${name}" 2>/dev/null; then
+            if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
@@ -365,11 +510,242 @@ in
           # --- Subcommand: game logs (CLI-11) ---
           game_logs() {
             local name="$1"
-            if ! pm container exists "game-''${name}" 2>/dev/null; then
+            if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
               echo "Error: game-''${name} is not running"
               exit 1
             fi
             pm logs -f "game-''${name}"
+          }
+
+          BACKUP_DIR="/srv/games/backups"
+          MAX_RUNNING_GAMES=2
+
+          # --- Helper: count players on a running game ---
+          count_players() {
+            local name="$1"
+            local env_file="/etc/vainos/games/''${name}.env"
+            # shellcheck source=/dev/null
+            source "$env_file"
+            case "$GAME_PLAYER_CHECK" in
+              rcon-query)
+                local output
+                output="$(pm exec "game-''${name}" rcon-cli list 2>/dev/null)" || { echo "0"; return; }
+                local count
+                count="$(echo "$output" | grep -oP 'There are \K\d+')" || { echo "0"; return; }
+                echo "$count"
+                ;;
+              log-parse)
+                local logs
+                logs="$(pm logs --tail 500 "game-''${name}" 2>&1)"
+                local connects disconnects
+                connects="$(echo "$logs" | grep -cE 'Got handshake from client|is trying to connect|logged in with entity' || true)"
+                disconnects="$(echo "$logs" | grep -cE 'Closing socket|Disconnecting client|lost connection|left the game' || true)"
+                local active=$(( connects - disconnects ))
+                if [ "$active" -lt 0 ]; then active=0; fi
+                echo "$active"
+                ;;
+              *)
+                echo "0"
+                ;;
+            esac
+          }
+
+          # --- Subcommand: game players (query online players) ---
+          game_players() {
+            local name="''${1:-}"
+            local running_containers
+            running_containers="$(pm ps --format '{{.Names}}' 2>/dev/null || true)"
+
+            if [ -n "$name" ]; then
+              if ! echo "$running_containers" | grep -q "^game-''${name}$"; then
+                echo "''${name}: stopped"
+                return
+              fi
+              local count
+              count="$(count_players "$name")"
+              echo "''${name}: ''${count} player(s)"
+            else
+              # Show all running games
+              for env_file in /etc/vainos/games/*.env; do
+                [ -f "$env_file" ] || continue
+                local gname
+                gname="$(grep '^GAME_NAME=' "$env_file" | cut -d= -f2)"
+                if echo "$running_containers" | grep -q "^game-''${gname}$"; then
+                  local count
+                  count="$(count_players "$gname")"
+                  printf "%-12s %s player(s)\n" "$gname" "$count"
+                else
+                  printf "%-12s stopped\n" "$gname"
+                fi
+              done
+            fi
+          }
+
+          # --- Subcommand: game cmd (one-shot command execution) ---
+          game_cmd() {
+            local name="$1"
+            shift
+            local cmd_text="$*"
+            if [ -z "$cmd_text" ]; then
+              echo "Usage: vainos game cmd <name> <command>"
+              exit 1
+            fi
+            load_game_config "$name"
+
+            if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+              echo "Error: game-''${name} is not running"
+              exit 1
+            fi
+
+            if [ "$GAME_CONSOLE_METHOD" != "rcon" ]; then
+              echo "Error: game '$name' does not support remote commands (no RCON)"
+              exit 1
+            fi
+            pm exec "game-''${name}" rcon-cli "$cmd_text"
+          }
+
+          # --- Subcommand: game console (interactive admin session) ---
+          game_console() {
+            local name="$1"
+            load_game_config "$name"
+
+            if ! pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+              echo "Error: game-''${name} is not running"
+              exit 1
+            fi
+
+            case "$GAME_CONSOLE_METHOD" in
+              rcon)
+                echo "Connecting to ''${name} RCON console (type 'exit' or Ctrl-C to quit)..."
+                pm exec -it "game-''${name}" rcon-cli
+                ;;
+              attach)
+                echo "Attaching to ''${name} server console (press Ctrl+P then Ctrl+Q to detach)..."
+                pm attach --detach-keys="ctrl-p,ctrl-q" "game-''${name}"
+                ;;
+              *)
+                echo "''${name} does not have a server console."
+                echo "Admin management is done in-game or via config files."
+                echo "Config directory: /srv/games/''${name}/"
+                ;;
+            esac
+          }
+
+          # --- Subcommand: game backup (snapshot world data) ---
+          game_backup() {
+            local name="$1"
+            load_game_config "$name"
+
+            local game_dir="/srv/games/''${name}"
+            if [ ! -d "$game_dir" ]; then
+              echo "Error: no data directory for '$name'"
+              exit 1
+            fi
+
+            mkdir -p "''${BACKUP_DIR}/''${name}"
+            local timestamp
+            timestamp="$(date +%Y%m%d-%H%M%S)"
+            local backup_file="''${BACKUP_DIR}/''${name}/''${timestamp}.tar.gz"
+
+            echo "Backing up ''${name}..."
+
+            # If server is running with RCON, save world first
+            if pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+              if [ "$GAME_SHUTDOWN_METHOD" = "rcon" ]; then
+                echo "Saving world before backup..."
+                pm exec "game-''${name}" rcon-cli save-all 2>/dev/null || true
+                sleep 3
+              fi
+            fi
+
+            tar -czf "$backup_file" -C /srv/games "$name"
+            local size
+            size="$(du -h "$backup_file" | cut -f1)"
+            echo "Backup saved: $backup_file ($size)"
+
+            # Keep only last 5 backups per game
+            local count
+            count="$(find "''${BACKUP_DIR}/''${name}" -name '*.tar.gz' | wc -l)"
+            if [ "$count" -gt 5 ]; then
+              find "''${BACKUP_DIR}/''${name}" -name '*.tar.gz' -printf '%T+ %p\n' | sort | head -n $((count - 5)) | cut -d' ' -f2- | while read -r old; do
+                rm -f "$old"
+                echo "Pruned old backup: $old"
+              done
+            fi
+          }
+
+          # --- Subcommand: game restore (restore from backup) ---
+          game_restore() {
+            local name="$1"
+            local backup_dir="''${BACKUP_DIR}/''${name}"
+
+            if [ ! -d "$backup_dir" ]; then
+              echo "Error: no backups found for '$name'"
+              exit 1
+            fi
+
+            # If a specific file is provided as $2, use it; otherwise use latest
+            local backup_file
+            if [ -n "''${2:-}" ]; then
+              backup_file="$2"
+            else
+              backup_file="$(find "$backup_dir" -name '*.tar.gz' -printf '%T+ %p\n' | sort -r | head -1 | cut -d' ' -f2-)"
+            fi
+
+            if [ -z "$backup_file" ] || [ ! -f "$backup_file" ]; then
+              echo "Error: no backup file found"
+              echo "Available backups:"
+              find "$backup_dir" -name '*.tar.gz' -printf '  %f (%s bytes)\n' 2>/dev/null
+              exit 1
+            fi
+
+            # Server must be stopped
+            if pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+              echo "Error: stop the server first (vainos game stop ''${name})"
+              exit 1
+            fi
+
+            echo "Restoring ''${name} from: $(basename "$backup_file")"
+            echo "This will OVERWRITE current data in /srv/games/''${name}/"
+            echo "Press Enter to continue or Ctrl-C to cancel..."
+            read -r
+
+            rm -rf "/srv/games/''${name}"
+            tar -xzf "$backup_file" -C /srv/games
+            echo "Restored."
+          }
+
+          # --- Subcommand: game update (pull latest image + restart) ---
+          game_update() {
+            local name="$1"
+            load_game_config "$name"
+
+            echo "Backing up ''${name} before update..."
+            game_backup "$name"
+
+            echo "Pulling latest image: ''${GAME_IMAGE}..."
+            pm pull "$GAME_IMAGE"
+
+            # If running, stop and restart
+            if pm ps -q --filter "name=^game-''${name}$" 2>/dev/null | grep -q .; then
+              echo "Stopping ''${name} for update..."
+              game_stop "$name"
+              echo "Starting ''${name} with updated image..."
+              game_start "$name" --force
+            else
+              echo "Image updated. Start with: vainos game start ''${name}"
+            fi
+          }
+
+          # --- Subcommand: game password (show current password) ---
+          game_password() {
+            local name="$1"
+            local pw_file="''${PASSWORD_DIR}/''${name}.txt"
+            if [ ! -f "$pw_file" ]; then
+              echo "No password set for '$name' (generates on next start)"
+              exit 0
+            fi
+            cat "$pw_file"
           }
 
           # --- Subcommand: game (sub-dispatcher) ---
@@ -378,11 +754,18 @@ in
               echo "Usage: vainos game <command> [args]"
               echo ""
               echo "Commands:"
-              echo "  start <name> [--force] [--env KEY=VALUE]  Start a game server"
+              echo "  start <name> [--force]  Start a game server"
               echo "  stop <name>             Stop a game server (graceful shutdown)"
               echo "  list                    List all games and their status"
               echo "  status <name>           Show game server resource usage"
               echo "  logs <name>             Follow game server logs"
+              echo "  password <name>         Show current server password"
+              echo "  players [name]          Show online player count"
+              echo "  cmd <name> <command>    Run a one-shot command (RCON)"
+              echo "  console <name>          Interactive admin console"
+              echo "  update <name>           Pull latest image, backup, and restart"
+              echo "  backup <name>           Backup world data"
+              echo "  restore <name> [file]   Restore from backup (latest or specific)"
               exit 0
             fi
 
@@ -406,6 +789,31 @@ in
               logs)
                 if [ $# -eq 0 ]; then echo "Usage: vainos game logs <name>"; exit 1; fi
                 game_logs "$1"
+                ;;
+              password)
+                if [ $# -eq 0 ]; then echo "Usage: vainos game password <name>"; exit 1; fi
+                game_password "$1"
+                ;;
+              players) game_players "''${1:-}" ;;
+              cmd)
+                if [ $# -lt 2 ]; then echo "Usage: vainos game cmd <name> <command>"; exit 1; fi
+                game_cmd "$@"
+                ;;
+              console)
+                if [ $# -eq 0 ]; then echo "Usage: vainos game console <name>"; exit 1; fi
+                game_console "$1"
+                ;;
+              update)
+                if [ $# -eq 0 ]; then echo "Usage: vainos game update <name>"; exit 1; fi
+                game_update "$1"
+                ;;
+              backup)
+                if [ $# -eq 0 ]; then echo "Usage: vainos game backup <name>"; exit 1; fi
+                game_backup "$1"
+                ;;
+              restore)
+                if [ $# -eq 0 ]; then echo "Usage: vainos game restore <name> [file]"; exit 1; fi
+                game_restore "$@"
                 ;;
               *)
                 echo "Error: Unknown game command '$subcmd'"

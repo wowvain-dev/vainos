@@ -32,10 +32,10 @@ in
       format = "dotenv";
     };
 
-    # Password persistence directory
+    # Password directory (shared with vainos CLI -- CLI generates, bot reads)
     systemd.tmpfiles.rules = [
-      "d /var/lib/discord-bot 0700 root root -"
-      "d /var/lib/discord-bot/passwords 0700 root root -"
+      "d /var/lib/vainos-games 0755 root root -"
+      "d /var/lib/vainos-games/passwords 0755 root root -"
     ];
 
     # Bot systemd service
@@ -54,7 +54,7 @@ in
           "GUILD_ID=${cfg.guildId}"
           "CHANNEL_ID=${cfg.channelId}"
           "ADMIN_ROLE_ID=${cfg.adminRoleId}"
-          "PASSWORD_DIR=/var/lib/discord-bot/passwords"
+          "PASSWORD_DIR=/var/lib/vainos-games/passwords"
           "GAME_ENV_DIR=/etc/vainos/games"
         ];
         EnvironmentFile = config.sops.secrets.discord-bot-token.path;

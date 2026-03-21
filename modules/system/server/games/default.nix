@@ -1,7 +1,7 @@
 # Game server infrastructure -- registry-driven directories, firewall, config gen, OOM protection
 # Games are on-demand (started by CLI in Phase 16), NOT always-on NixOS containers.
 # The registry produces shell-parseable .env config files consumed by the CLI.
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   cfg = config.systemSettings.server.games;
@@ -30,6 +30,10 @@ let
   #   owner             - Optional "UID:GID" for volume ownership (e.g., "1000:1000")
   #   playerCheckMethod - "rcon-query" | "log-parse" | "none" -- how bot checks for connected players
   #   passwordEnvVar    - Env var name for server password (e.g., "SERVER_PASS") -- empty string = no password
+  #   passwordType      - "alphanumeric" (default) | "numeric" -- controls generated password format
+  #   passwordWriteMethod - "env" (default, pass via -e) | "minecraft-plugin" | "zomboid-ini"
+  #   readyPattern        - grep pattern in container logs that indicates server is fully started
+  #   consoleMethod       - "rcon" | "attach" | "none" -- how admin console access works
   games = {
     minecraft = {
       image = "itzg/minecraft-server:java21";
@@ -41,16 +45,21 @@ let
       ];
       env = {
         EULA = "TRUE";
-        TYPE = "VANILLA";
+        TYPE = "PAPER";
         VERSION = "LATEST";
         MEMORY = "4G";
         ENABLE_RCON = "true";
         RCON_PASSWORD = "changeme";
+        MODRINTH_PROJECTS = "passwords";
       };
       memory = "4G";
       shutdownMethod = "rcon";
       playerCheckMethod = "rcon-query";
-      passwordEnvVar = "RCON_PASSWORD";
+      passwordEnvVar = "SERVER_PASSWORD";
+      passwordType = "numeric";
+      passwordWriteMethod = "minecraft-plugin";
+      readyPattern = "Done";
+      consoleMethod = "rcon";
     };
     valheim = {
       image = "lloesche/valheim-server:latest";
@@ -77,6 +86,8 @@ let
       shutdownSignal = "SIGINT";
       playerCheckMethod = "log-parse";
       passwordEnvVar = "SERVER_PASS";
+      readyPattern = "Game server connected";
+      consoleMethod = "none";  # Valheim has no server console; admin via in-game F5 or config files
     };
     zomboid = {
       image = "renegademaster/zomboid-dedicated-server:latest";
@@ -104,7 +115,10 @@ let
       shutdownMethod = "signal";
       owner = "1000:1000";  # steam user inside container
       playerCheckMethod = "log-parse";
-      passwordEnvVar = "ADMIN_PASSWORD";
+      passwordEnvVar = "SERVER_PASSWORD";
+      passwordWriteMethod = "zomboid-ini";
+      readyPattern = "SERVER STARTED";
+      consoleMethod = "attach";
     };
   };
 
@@ -129,6 +143,10 @@ let
         "GAME_SHUTDOWN_SIGNAL=${game.shutdownSignal or "SIGTERM"}"
         "GAME_PLAYER_CHECK=${game.playerCheckMethod or "none"}"
         "GAME_PASSWORD_ENV=${game.passwordEnvVar or ""}"
+        "GAME_PASSWORD_TYPE=${game.passwordType or "alphanumeric"}"
+        "GAME_PASSWORD_WRITE=${game.passwordWriteMethod or "env"}"
+        "GAME_READY_PATTERN=\"${game.readyPattern or ""}\""
+        "GAME_CONSOLE_METHOD=${game.consoleMethod or "none"}"
       ];
       portVars = lib.concatImapStringsSep "\n" (i: p:
         "PORT_${toString (i - 1)}=\"${toString p.port}/${p.protocol}\""
@@ -163,6 +181,7 @@ in
     # Container images create their own internal subdirectory structure
     systemd.tmpfiles.rules = [
       "d /srv/games 0755 root root -"
+      "d /srv/games/backups 0755 root root -"
     ] ++ lib.concatMap (name:
       let
         game = games.${name};
@@ -198,6 +217,42 @@ in
 
     # Enable podman-restart.service so game containers with --restart=always survive reboots (INFRA-08)
     systemd.services.podman-restart.wantedBy = [ "multi-user.target" ];
+
+    # Scheduled automatic backup of all running game servers (MAINT-01)
+    # Enumerates running game-* containers and calls `vainos game backup` for each.
+    # Backup retention (last 5 per game) handled by the CLI function.
+    systemd.services.vainos-game-backup = {
+      description = "Backup all running game servers";
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+      };
+      path = [ pkgs.podman ];
+      script = ''
+        echo "vainos-game-backup: starting scheduled backup"
+        running=$(podman ps --format '{{.Names}}' 2>/dev/null | grep '^game-' || true)
+        if [ -z "$running" ]; then
+          echo "vainos-game-backup: no game containers running, nothing to back up"
+          exit 0
+        fi
+        echo "$running" | while IFS= read -r container; do
+          name="''${container#game-}"
+          echo "vainos-game-backup: backing up $name"
+          vainos game backup "$name" || echo "vainos-game-backup: WARNING: backup failed for $name"
+        done
+        echo "vainos-game-backup: scheduled backup complete"
+      '';
+    };
+
+    systemd.timers.vainos-game-backup = {
+      description = "Daily backup timer for game servers";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 04:00:00";
+        Persistent = true;
+        RandomizedDelaySec = "15m";
+      };
+    };
 
     # Game server landing pages -- browser-accessible connection instructions
     services.caddy.virtualHosts = {
