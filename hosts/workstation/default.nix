@@ -12,9 +12,11 @@
   # --- Enable desktop system modules ---
   systemSettings.desktop.hyprland.enable = true;
   systemSettings.desktop.audio.enable = true;
+  systemSettings.desktop.audio.virtualChannels = true;
   systemSettings.desktop.gpu.enable = true;
   systemSettings.desktop.bluetooth.enable = true;
   systemSettings.desktop.gaming.enable = true;
+  systemSettings.desktop.streamdeck.enable = true;
 
   # --- Enable desktop user modules ---
   userSettings.desktop.hyprland.enable = true;
