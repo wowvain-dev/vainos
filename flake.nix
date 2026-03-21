@@ -20,13 +20,17 @@
       inputs.home-manager.follows = "home-manager";
     };
 
+    claude-code = {
+      url = "github:sadjow/claude-code-nix";
+    };
+
     vainim = {
       url = "github:wowvain-dev/vainim";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, stylix, vainim, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, stylix, claude-code, vainim, ... }@inputs:
   let
     mkHost = import ./lib/mkHost.nix { inherit inputs; };
 

@@ -51,6 +51,7 @@
 
   # --- Enable CLI module ---
   systemSettings.core.vainos-cli.enable = true;
+  systemSettings.core.claude-code.enable = true;
 
   # --- Enable maintenance modules ---
   systemSettings.maintenance.autoUpdate.enable = false;
