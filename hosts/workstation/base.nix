@@ -2,11 +2,12 @@
 # Auto-imported by mkHost from the host directory.
 { ... }:
 {
-  # Bootloader -- systemd-boot with shared ESP from Windows
-  # TODO: If ESP is < 512MB, reduce configurationLimit or set up XBOOTLDR
+  # Bootloader -- systemd-boot with XBOOTLDR
+  # ESP (100MB at /efi) holds only the bootloader binary (~2MB)
+  # XBOOTLDR (1GB at /boot) holds kernels, initrds, and generation entries
   boot.loader = {
     systemd-boot.enable = true;
-    systemd-boot.configurationLimit = 10;  # Limit stored generations to conserve ESP space
+    efi.efiSysMountPoint = "/efi";
     efi.canTouchEfiVariables = true;
   };
 
