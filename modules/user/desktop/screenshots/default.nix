@@ -16,7 +16,7 @@ in
       # slurp: region selection tool for Wayland
       # Keybinds defined in hyprland module:
       #   Print       -> fullscreen screenshot
-      #   Super+Print -> region selection screenshot
+      #   Super+Shift+S -> region selection screenshot
       # Screenshots saved to ~/Pictures/Screenshots/
       home.packages = with pkgs; [
         grim

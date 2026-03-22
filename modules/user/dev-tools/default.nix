@@ -74,7 +74,6 @@ in
 
         # --- Ruby (DEV-18) ---
         ruby
-        bundler     # ruby dependency manager
       ];
     };
   };

@@ -1,8 +1,9 @@
 # Yazi user module -- Yazi terminal file manager via Home Manager
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   cfg = config.userSettings.desktop.yazi;
+  vainos-trash = pkgs.writeShellScriptBin "vainos-trash" (builtins.readFile ./vainos-trash.sh);
 in
 {
   options.userSettings.desktop.yazi = {
@@ -28,7 +29,19 @@ in
             sort_dir_first = true;
           };
         };
+
+        keymap = {
+          manager.prepend_keymap = [
+            {
+              on = [ "d" ];
+              run = ''shell 'vainos-trash "$@"' --confirm'';
+              desc = "Trash files (centralized)";
+            }
+          ];
+        };
       };
+
+      home.packages = [ vainos-trash ];
     };
   };
 }

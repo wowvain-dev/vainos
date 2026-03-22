@@ -52,9 +52,11 @@ in
       SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="009a", TAG+="uaccess"
     '';
 
-    # Wine for running Windows-only Stream Deck plugins
+    # Volume control script for Stream Deck+ dials → PipeWire virtual channels
+    # Used by OpenDeck "Run Command" dial actions
     environment.systemPackages = with pkgs; [
       wine-wayland
+      (writeShellScriptBin "sd-vol" (builtins.readFile ./vol-channel.sh))
     ];
   };
 }

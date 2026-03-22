@@ -6,19 +6,19 @@
 #   2. modules/user/*   -- user modules (via autoImport, toggled by userSettings.*.enable)
 #   3. hosts/{name}/*.nix -- host-specific .nix files (except default.nix + hardware-configuration.nix)
 #   4. hosts/{name}/default.nix -- host data file (systemSettings/userSettings assignments only)
-#   5. hardware-configuration.nix -- auto-detected if present in host directory
-#   6. local/{name}.nix -- machine-specific config (passed as localConfigModule)
+#   5. hardware-configuration.nix -- gitignored, loaded via impure absolute path (passed as hwConfigModule)
+#   6. local/{name}.nix -- machine-specific config, gitignored (passed as localConfigModule)
 { inputs, ... }:
 let
   autoImport = import ./autoImport.nix;
 in
-name: { system, modules ? [], localConfigModule ? null }:
+name: { system, modules ? [], hwConfigModule ? null, localConfigModule ? null }:
 let
   systemModules = autoImport ../modules/system;
   userModules = autoImport ../modules/user;
 
   # Auto-import .nix files from the host directory.
-  # Excludes default.nix (data file, imported separately) and hardware-configuration.nix (imported separately for dedup).
+  # Excludes default.nix (data file, imported separately) and hardware-configuration.nix (gitignored, loaded via impure path).
   hostDir = ../hosts/${name};
   hostDirEntries = builtins.readDir hostDir;
   hostDirModules = builtins.filter (p: p != null) (
@@ -31,8 +31,7 @@ let
     ) (builtins.attrNames hostDirEntries)
   );
 
-  hwConfigPath = ../hosts/${name}/hardware-configuration.nix;
-  hwConfig = if builtins.pathExists hwConfigPath then [ hwConfigPath ] else [];
+  hwConfig = if hwConfigModule != null then [ hwConfigModule ] else [];
   localMod = if localConfigModule != null then [ localConfigModule ] else [];
 in
 inputs.nixpkgs.lib.nixosSystem {

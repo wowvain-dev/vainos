@@ -17,7 +17,7 @@ in
         autosuggestion.enable = true;
         syntaxHighlighting.enable = true;
         sessionVariables = {
-          VAINOS_ROOT = "/home/wowvain/.vainos";
+          VAINOS_ROOT = "/etc/vainos";
         };
         history = {
           size = 10000;

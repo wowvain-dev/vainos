@@ -50,6 +50,7 @@ let
         "node.name" = "monitor_capture_${ch.name}";
         "audio.position" = "FL,FR";
         "stream.dont-remix" = true;
+        "stream.capture.sink" = true;
         "node.passive" = true;
         "target.object" = "channel_${ch.name}";
       };
@@ -62,6 +63,33 @@ let
     };
   }) channels;
 
+  # Mic monitor loopback — hear yourself through headphones (mono → stereo)
+  # The Elgato XLR mic is mono; without explicit remixing, monitoring only plays in left ear.
+  # Captures from default source (Elgato XLR), plays back to default sink with MONO→stereo upmix.
+  micMonitorLoopback = {
+    name = "libpipewire-module-loopback";
+    args = {
+      "node.description" = "Mic → Monitor";
+      "audio.channels" = 2;
+      "audio.position" = "FL,FR";
+      "capture.props" = {
+        "node.name" = "mic_monitor_capture";
+        "audio.channels" = 1;
+        "audio.position" = "MONO";
+        "node.passive" = true;
+        "stream.dont-remix" = true;
+      };
+      "playback.props" = {
+        "node.name" = "mic_monitor_playback";
+        "audio.channels" = 2;
+        "audio.position" = "FL,FR";
+        "stream.dont-remix" = false;
+        "node.passive" = true;
+        "node.dont-fallback" = true;
+      };
+    };
+  };
+
   # Generate loopback modules that route each channel → Stream mix (for OBS)
   streamLoopbacks = map (ch: {
     name = "libpipewire-module-loopback";
@@ -71,6 +99,7 @@ let
         "node.name" = "stream_capture_${ch.name}";
         "audio.position" = "FL,FR";
         "stream.dont-remix" = true;
+        "stream.capture.sink" = true;
         "node.passive" = true;
         "target.object" = "channel_${ch.name}";
       };
@@ -155,7 +184,7 @@ in
 
         # Loopback routing: each channel → Monitor (default output) + Stream mix
         "92-channel-routing" = {
-          "context.modules" = monitorLoopbacks ++ streamLoopbacks;
+          "context.modules" = monitorLoopbacks ++ streamLoopbacks ++ [ micMonitorLoopback ];
         };
       };
 

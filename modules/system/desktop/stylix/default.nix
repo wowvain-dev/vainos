@@ -34,7 +34,10 @@ in
     stylix = {
       enable = true;
       enableReleaseChecks = false;
-      image = ./wallpaper.png; # Required by Stylix even if not displayed
+      # Generate a solid-color wallpaper from the theme's base00 background
+      image = pkgs.runCommand "wallpaper.png" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+        magick -size 1920x1080 xc:#${config.lib.stylix.colors.base00} $out
+      '';
       base16Scheme = theme.base16Scheme;
       polarity = theme.polarity;
 

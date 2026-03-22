@@ -34,17 +34,18 @@
   let
     mkHost = import ./lib/mkHost.nix { inherit inputs; };
 
-    # Machine-specific config loaded from local/ (requires --impure)
-    # Uses absolute path via /etc/nixos symlink so gitignored files are visible.
-    # Gracefully returns null if the file is missing (fresh install from USB).
-    localConfig = name:
+    # Impure absolute-path loader for gitignored files (requires --impure).
+    # Uses VAINOS_ROOT or /etc/vainos so gitignored files are visible.
+    # Returns null if file is missing (fresh install).
+    impurePath = name: rel:
       let
         root = let env = builtins.getEnv "VAINOS_ROOT";
-               in if env != "" then env else "/etc/nixos";
-        path = "${root}/local/${name}.nix";
-      in if builtins.pathExists path
-         then path
-         else null;  # No local config yet (fresh install) -- mkHost handles null gracefully
+               in if env != "" then env else "/etc/vainos";
+        path = "${root}/${rel}";
+      in if builtins.pathExists (/. + path) then (/. + path) else null;
+
+    localConfig = name: impurePath name "local/${name}.nix";
+    hwConfig = name: impurePath name "hosts/${name}/hardware-configuration.nix";
 
     # ---- Dynamic host scanner ----
     # Discovers hosts from hosts/ directory structure.
@@ -75,10 +76,12 @@
         inherit name;
         value = mkHost name {
           system = meta.system;
+          hwConfigModule = hwConfig name;
           localConfigModule = localConfig name;
         };
       };
   in {
     nixosConfigurations = builtins.listToAttrs (map mkHostConfig hostNames);
+
   };
 }

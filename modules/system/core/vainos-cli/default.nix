@@ -16,7 +16,7 @@ in
         runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gnugrep pkgs.gawk pkgs.git pkgs.nix pkgs.nixos-rebuild pkgs.procps ];
         text = ''
           # --- Configuration ---
-          VAINOS_ROOT="''${VAINOS_ROOT:-/etc/nixos}"
+          VAINOS_ROOT="''${VAINOS_ROOT:-/etc/vainos}"
 
           # Wrapper: run podman as root (doas if needed, direct if already root)
           pm() {
@@ -39,6 +39,7 @@ in
             echo "Usage: vainos <command> [options]"
             echo ""
             echo "Commands:"
+            echo "  vainos home               Rebuild user config only (fast, no sudo)"
             echo "  vainos sync [host]        Rebuild local (default) or deploy to remote host"
             echo "  vainos update [--rebuild]  Update flake inputs; optionally rebuild after"
             echo "  vainos gc [full]           Garbage-collect old generations (default: 30d retention)"
@@ -832,7 +833,15 @@ PWCFG
           command="$1"
           shift
 
+          # --- Subcommand: home ---
+          cmd_home() {
+            echo ":: Rebuilding user config..."
+            # Uses 'test' to build + activate home-manager without touching bootloader
+            doas nixos-rebuild test --flake "$VAINOS_ROOT#$(hostname)" --impure --fast
+          }
+
           case "$command" in
+            home)   cmd_home ;;
             sync)   cmd_sync "$@" ;;
             update) cmd_update "$@" ;;
             gc)     cmd_gc "$@" ;;

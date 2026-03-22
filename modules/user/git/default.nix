@@ -28,7 +28,10 @@ in
           init.defaultBranch = "main";
           pull.rebase = true;
           push.autoSetupRemote = true;
-          safe.directory = "/home/wowvain/.vainos";
+          safe.directory = [
+            "/home/wowvain/.vainos"
+            "/etc/vainos"
+          ];
         };
       };
     };
