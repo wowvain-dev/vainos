@@ -35,15 +35,16 @@
     mkHost = import ./lib/mkHost.nix { inherit inputs; };
 
     # Machine-specific config loaded from local/ (requires --impure)
-    # Uses absolute path via /etc/nixos symlink so gitignored files are visible
+    # Uses absolute path via /etc/nixos symlink so gitignored files are visible.
+    # Gracefully returns null if the file is missing (fresh install from USB).
     localConfig = name:
       let
         root = let env = builtins.getEnv "VAINOS_ROOT";
                in if env != "" then env else "/etc/nixos";
         path = "${root}/local/${name}.nix";
       in if builtins.pathExists path
-         then path   # Return PATH, not import result -- mkHost imports it as a NixOS module
-         else throw "Missing ${path} -- copy local/${name}.nix.example to local/${name}.nix and fill in your values";
+         then path
+         else null;  # No local config yet (fresh install) -- mkHost handles null gracefully
 
     # ---- Dynamic host scanner ----
     # Discovers hosts from hosts/ directory structure.
