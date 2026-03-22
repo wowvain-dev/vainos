@@ -1,5 +1,5 @@
 # Mako user module -- Mako notification config via Home Manager
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   cfg = config.userSettings.desktop.mako;
@@ -11,6 +11,8 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.wowvain = {
+      home.packages = [ pkgs.libnotify ];
+
       services.mako = {
         enable = true;
 
