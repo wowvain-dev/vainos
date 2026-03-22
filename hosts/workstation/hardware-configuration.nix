@@ -14,7 +14,7 @@
 
   # NixOS root partition (Disk 1 / 1TB NVMe, ~329GB ext4)
   fileSystems."/" =
-    { device = "/dev/disk/by-label/nixos";
+    { device = "/dev/disk/by-label/vainos";
       fsType = "ext4";
     };
 
