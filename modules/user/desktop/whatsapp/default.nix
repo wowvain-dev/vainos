@@ -12,7 +12,7 @@ in
   config = lib.mkIf cfg.enable {
     home-manager.users.wowvain = {
       home.packages = [
-        pkgs.whatsapp-for-linux  # GTK wrapper around WhatsApp Web
+        pkgs.wasistlos  # GTK wrapper around WhatsApp Web (formerly whatsapp-for-linux)
       ];
     };
   };
