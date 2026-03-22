@@ -58,5 +58,24 @@ in
       wine-wayland
       (writeShellScriptBin "sd-vol" (builtins.readFile ./vol-channel.sh))
     ];
+
+    # Auto-start OpenDeck as a user service on login
+    home-manager.users.wowvain = {
+      systemd.user.services.opendeck = {
+        Unit = {
+          Description = "OpenDeck - Stream Deck controller";
+          After = [ "graphical-session.target" ];
+          PartOf = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${pkgs.flatpak}/bin/flatpak run me.amankhanna.opendeck";
+          Restart = "on-failure";
+          RestartSec = 5;
+        };
+        Install = {
+          WantedBy = [ "graphical-session.target" ];
+        };
+      };
+    };
   };
 }
